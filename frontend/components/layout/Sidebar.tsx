@@ -10,7 +10,6 @@ import {
   Wallet,
   Settings,
   Menu,
-  Upload,
 } from "lucide-react";
 import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -20,7 +19,7 @@ import { useState } from "react";
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
-  { name: "Import", href: "/transactions/import", icon: Upload },
+  // { name: "Import", href: "/transactions/import", icon: Upload },
   { name: "Budgets", href: "/budgets", icon: PiggyBank },
   { name: "Categories", href: "/categories", icon: List },
   { name: "Accounts", href: "/accounts", icon: Wallet },

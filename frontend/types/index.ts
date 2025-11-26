@@ -14,6 +14,7 @@ export interface Category {
   color: string;
   icon: string;
   parentId?: string;
+  isSystem?: boolean;
   // API response fields
   createdAt?: string;
   updatedAt?: string;
@@ -52,6 +53,10 @@ export interface Transaction {
   accountId: string;
   description: string;
   tags: string[];
+  // Transfer fields
+  isTransfer?: boolean;
+  transferGroupId?: string;
+  hideFromSummary?: boolean;
   // API enriched fields
   categoryName?: string;
   categoryColor?: string;
@@ -59,6 +64,25 @@ export interface Transaction {
   accountName?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// =============================================================================
+// Transfer Types
+// =============================================================================
+
+export interface TransferCreate {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date: string;
+  description?: string;
+  hideFromSummary?: boolean;
+}
+
+export interface TransferResponse {
+  transferGroupId: string;
+  outgoingTransaction: Transaction;
+  incomingTransaction: Transaction;
 }
 
 // =============================================================================
@@ -101,5 +125,43 @@ export interface MappingItem {
 export interface ImportResult {
   importedCount: number;
   skippedCount: number;
+  transferCount: number;
   errors: string[];
+}
+
+// =============================================================================
+// Preview Types
+// =============================================================================
+
+export interface PreviewRow {
+  rowIndex: number;
+  externalId: string;
+  date: string;
+  parsedDate: string | null;
+  amount: number;
+  type: "income" | "expense" | "transfer";
+  description: string;
+
+  categoryValue: string;
+  categoryId: string | null;
+  categoryName: string | null;
+
+  accountValue: string;
+  accountId: string | null;
+  accountName: string | null;
+
+  isValid: boolean;
+  validationErrors: string[];
+
+  isTransfer: boolean;
+  transferPairIndex: number | null;
+}
+
+export interface PreviewResult {
+  profileId: string;
+  rows: PreviewRow[];
+  totalValid: number;
+  totalInvalid: number;
+  totalTransfers: number;
+  warnings: string[];
 }

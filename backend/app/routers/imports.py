@@ -14,6 +14,9 @@ from app.schemas.import_profile import (
     ParseResult,
     ConfirmImportRequest,
     ImportResult,
+    PreviewRequest,
+    PreviewResult,
+    MappingItem,
 )
 from app.crud import import_profile as crud
 from app.services import import_service
@@ -115,6 +118,61 @@ async def parse_file(
     return result
 
 
+@router.post("/preview", response_model=PreviewResult)
+def preview_import(
+    request: PreviewRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Generate a preview of the import with resolved values.
+
+    Shows how each row will be imported, validates data, and detects transfer pairs.
+    """
+    # Verify profile ownership
+    profile = crud.get_profile(db, request.profile_id, user_id)
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Import profile not found",
+        )
+
+    # Get existing mappings and merge with new ones
+    existing_cat_mappings = crud.get_value_mappings_dict(
+        db, request.profile_id, "category"
+    )
+    existing_acc_mappings = crud.get_value_mappings_dict(
+        db, request.profile_id, "account"
+    )
+
+    # Merge with new mappings from request
+    category_mappings = dict(existing_cat_mappings)
+    for item in request.category_mappings:
+        category_mappings[item.csv_value] = item.internal_id
+
+    account_mappings = dict(existing_acc_mappings)
+    for item in request.account_mappings:
+        account_mappings[item.csv_value] = item.internal_id
+
+    # Generate preview
+    try:
+        result = import_service.generate_preview(
+            db=db,
+            user_id=user_id,
+            profile_id=request.profile_id,
+            parsed_rows=request.parsed_rows,
+            category_mappings=category_mappings,
+            account_mappings=account_mappings,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Preview generation failed: {str(e)}",
+        )
+
+    return result
+
+
 @router.post("/confirm", response_model=ImportResult)
 def confirm_import(
     request: ConfirmImportRequest,
@@ -125,6 +183,7 @@ def confirm_import(
     Confirm and execute the import.
 
     Persists new mappings and creates transactions from the parsed rows.
+    Automatically detects and creates transfer pairs.
     """
     # Verify profile ownership
     profile = crud.get_profile(db, request.profile_id, user_id)
@@ -143,6 +202,7 @@ def confirm_import(
             parsed_rows=request.parsed_rows,
             category_mappings=request.category_mappings,
             account_mappings=request.account_mappings,
+            excluded_indices=request.excluded_indices,
         )
     except Exception as e:
         raise HTTPException(
@@ -151,4 +211,3 @@ def confirm_import(
         )
 
     return result
-

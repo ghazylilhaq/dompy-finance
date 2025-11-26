@@ -112,27 +112,32 @@ def update_category(
     return category
 
 
-def delete_category(
-    db: Session, category_id: UUID, user_id: str
-) -> tuple[bool, int]:
+def delete_category(db: Session, category_id: UUID, user_id: str) -> tuple[bool, int]:
     """
     Delete a category by ID, verifying ownership.
     First deletes all associated transactions (cascade delete).
     Children will have their parent_id set to NULL (ON DELETE SET NULL).
+    Also deletes any import value mappings pointing to this category.
 
     Note: Only deletes transactions for this category, not child categories.
     Child categories retain their transactions and become root categories.
+    System categories (is_system=True) cannot be deleted.
 
     Returns:
         tuple[bool, int]: (success, deleted_transaction_count)
-        - (False, 0) if category not found
+        - (False, 0) if category not found or is system category
         - (True, count) if deleted successfully
     """
     # Import here to avoid circular imports
     from app.crud import transaction as transaction_crud
+    from app.crud import import_profile as import_crud
 
     category = get_category(db, category_id, user_id)
     if not category:
+        return (False, 0)
+
+    # Prevent deletion of system categories
+    if category.is_system:
         return (False, 0)
 
     # Cascade delete all transactions for this category only
@@ -141,6 +146,86 @@ def delete_category(
         db, category_id, user_id
     )
 
+    # Delete any import mappings pointing to this category
+    import_crud.delete_mappings_by_internal_id(db, category_id, "category")
+
     db.delete(category)
     db.commit()
     return (True, deleted_count)
+
+
+def get_category_by_name(
+    db: Session,
+    name: str,
+    user_id: str,
+    parent_id: UUID | None = None,
+    any_parent: bool = False,
+) -> Category | None:
+    """
+    Get a category by name for a user.
+    
+    Args:
+        db: Database session
+        name: Category name to search for
+        user_id: User ID
+        parent_id: If provided, filter by this parent ID
+        any_parent: If True, ignore parent_id and search all categories by name
+    """
+    stmt = select(Category).where(
+        Category.user_id == user_id,
+        Category.name == name,
+    )
+    if any_parent:
+        # Search all categories regardless of parent
+        pass
+    elif parent_id:
+        stmt = stmt.where(Category.parent_id == parent_id)
+    else:
+        stmt = stmt.where(Category.parent_id.is_(None))
+    return db.scalars(stmt).first()
+
+
+def ensure_transfer_categories(db: Session, user_id: str) -> dict[str, UUID]:
+    """
+    Ensure transfer categories exist for a user, creating them if necessary.
+
+    Creates as root-level categories (no parent):
+    - "Incoming transfer" (type: income, is_system: true)
+    - "Outgoing transfer" (type: expense, is_system: true)
+
+    Returns dict with category IDs: {"incoming", "outgoing"}
+    """
+    # Check/create Incoming transfer (root-level, is_system=True)
+    incoming = get_category_by_name(db, "Incoming transfer", user_id)
+    if not incoming:
+        incoming = Category(
+            user_id=user_id,
+            name="Incoming transfer",
+            type="income",
+            color="#10B981",  # Green
+            icon="ArrowDownLeft",
+            is_system=True,
+        )
+        db.add(incoming)
+        db.flush()
+
+    # Check/create Outgoing transfer (root-level, is_system=True)
+    outgoing = get_category_by_name(db, "Outgoing transfer", user_id)
+    if not outgoing:
+        outgoing = Category(
+            user_id=user_id,
+            name="Outgoing transfer",
+            type="expense",
+            color="#EF4444",  # Red
+            icon="ArrowUpRight",
+            is_system=True,
+        )
+        db.add(outgoing)
+        db.flush()
+
+    db.commit()
+
+    return {
+        "incoming": incoming.id,
+        "outgoing": outgoing.id,
+    }

@@ -116,6 +116,9 @@ class ConfirmImportRequest(BaseModel):
         default_factory=list, description="New account mappings to persist"
     )
     parsed_rows: list[ParsedRow] = Field(..., description="Rows to import")
+    excluded_indices: list[int] = Field(
+        default_factory=list, description="Row indices to skip"
+    )
 
 
 class ImportResult(BaseModel):
@@ -123,7 +126,71 @@ class ImportResult(BaseModel):
 
     imported_count: int = Field(..., description="Number of transactions imported")
     skipped_count: int = Field(..., description="Number of rows skipped")
+    transfer_count: int = Field(
+        default=0, description="Number of transfer pairs created"
+    )
     errors: list[str] = Field(
         default_factory=list, description="Row-level error messages"
     )
 
+
+# =============================================================================
+# Preview Schemas
+# =============================================================================
+
+
+class PreviewRow(BaseModel):
+    """A single row in the import preview with resolved values."""
+
+    row_index: int = Field(..., description="Row index in the file (0-based)")
+    external_id: str = Field(..., description="External ID from CSV")
+    date: str = Field(..., description="Original date string from CSV")
+    parsed_date: Optional[str] = Field(None, description="ISO format date if parseable")
+    amount: Decimal = Field(..., description="Amount (can be negative)")
+    type: str = Field(..., description="Transaction type: income, expense, or transfer")
+    description: str = Field(..., description="Transaction description")
+
+    # Resolved values
+    category_value: str = Field(..., description="Original CSV category value")
+    category_id: Optional[UUID] = Field(None, description="Resolved category ID")
+    category_name: Optional[str] = Field(None, description="Resolved category name")
+
+    account_value: str = Field(..., description="Original CSV account value")
+    account_id: Optional[UUID] = Field(None, description="Resolved account ID")
+    account_name: Optional[str] = Field(None, description="Resolved account name")
+
+    # Validation
+    is_valid: bool = Field(..., description="Whether row can be imported")
+    validation_errors: list[str] = Field(
+        default_factory=list, description="List of validation errors"
+    )
+
+    # Transfer pairing
+    is_transfer: bool = Field(default=False, description="Is part of a transfer pair")
+    transfer_pair_index: Optional[int] = Field(
+        None, description="Row index of paired transfer leg"
+    )
+
+
+class PreviewResult(BaseModel):
+    """Result of generating an import preview."""
+
+    profile_id: UUID = Field(..., description="Import profile ID")
+    rows: list[PreviewRow] = Field(..., description="All preview rows")
+    total_valid: int = Field(..., description="Count of valid rows")
+    total_invalid: int = Field(..., description="Count of invalid rows")
+    total_transfers: int = Field(..., description="Count of detected transfer pairs")
+    warnings: list[str] = Field(default_factory=list, description="General warnings")
+
+
+class PreviewRequest(BaseModel):
+    """Request to generate an import preview."""
+
+    profile_id: UUID = Field(..., description="Import profile ID")
+    parsed_rows: list[ParsedRow] = Field(..., description="Rows from parse step")
+    category_mappings: list[MappingItem] = Field(
+        default_factory=list, description="Category mappings (including new ones)"
+    )
+    account_mappings: list[MappingItem] = Field(
+        default_factory=list, description="Account mappings (including new ones)"
+    )

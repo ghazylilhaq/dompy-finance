@@ -5,10 +5,12 @@
 Currently, deleting an account or category fails if there are associated transactions (`ondelete="RESTRICT"` constraint). The user requests that deleting an account or category should also delete all transactions attached to it before the account/category itself is removed. This improves UX by eliminating blocked deletions and provides a cleaner data cleanup flow.
 
 **Current behavior:**
+
 - `DELETE /api/accounts/{id}` returns 409 Conflict if transactions exist
 - `DELETE /api/categories/{id}` returns 409 Conflict if transactions exist
 
 **Desired behavior:**
+
 - Deleting an account cascade-deletes all its transactions first
 - Deleting a category cascade-deletes all its transactions first
 - For parent categories, also handle child category transactions
@@ -18,9 +20,11 @@ Currently, deleting an account or category fails if there are associated transac
 ## Data Layer
 
 ### Option A: Application-Level Cascade (Recommended)
+
 No database migration required. Delete transactions in CRUD layer before deleting account/category.
 
 ### Option B: Database-Level Cascade (Alternative)
+
 Requires Alembic migration to change foreign key constraints:
 
 **File:** `backend/alembic/versions/xxxx_cascade_delete_transactions.py`
@@ -32,6 +36,7 @@ Requires Alembic migration to change foreign key constraints:
 ```
 
 **Recommendation:** Use Option A (application-level) for better control over:
+
 - Budget spent_amount recalculation
 - Returning deletion counts to frontend
 - Logging/auditing deleted transactions
@@ -45,6 +50,7 @@ Requires Alembic migration to change foreign key constraints:
 **Add new functions:**
 
 #### `delete_transactions_by_account`
+
 - **Purpose:** Bulk delete all transactions for a given account
 - **Logic:**
   1. Query all transactions where `account_id == target_account_id` AND `user_id == user_id`
@@ -55,6 +61,7 @@ Requires Alembic migration to change foreign key constraints:
 - **Note:** Skip account balance update since account is being deleted
 
 #### `delete_transactions_by_category`
+
 - **Purpose:** Bulk delete all transactions for a given category (and optionally its children)
 - **Input:** `category_id`, `user_id`, `include_children: bool = False`
 - **Logic:**
@@ -160,9 +167,11 @@ class DeleteResponse:
 **Add new functions:**
 
 #### `getTransactionCountByAccount(accountId: string): Promise<number>`
+
 - `GET /api/transactions/count?account_id={id}`
 
 #### `getTransactionCountByCategory(categoryId: string): Promise<number>`
+
 - `GET /api/transactions/count?category_id={id}`
 
 ---
@@ -180,6 +189,7 @@ class DeleteResponse:
 **Add new endpoint:**
 
 #### `GET /api/transactions/count`
+
 - Query params: `account_id`, `category_id` (both optional)
 - Returns: `{"count": int}`
 - Used by frontend to show deletion warning
@@ -191,6 +201,7 @@ class DeleteResponse:
 **Add function:**
 
 #### `count_transactions`
+
 - **Input:** `db`, `user_id`, optional `account_id`, optional `category_id`
 - **Output:** `int`
 - **Query:** Count transactions matching filters
@@ -200,6 +211,7 @@ class DeleteResponse:
 ## Logic Flow
 
 ### Account Deletion Flow
+
 1. User clicks "Delete Account" button
 2. Frontend fetches transaction count for account
 3. Frontend shows confirmation dialog with transaction count warning
@@ -213,6 +225,7 @@ class DeleteResponse:
 8. Frontend refreshes account list
 
 ### Category Deletion Flow
+
 1. User clicks "Delete Category" button
 2. Frontend fetches transaction count for category
 3. Frontend shows confirmation dialog with:
@@ -235,15 +248,18 @@ class DeleteResponse:
 ## Edge Cases
 
 1. **Parent category with children:**
+
    - Current: Children get `parent_id = NULL` (become root categories)
    - Transactions: Delete only parent's transactions, OR cascade to children too
    - Recommendation: Only delete parent's transactions; children retain their transactions
 
 2. **Multiple budgets affected:**
+
    - Transactions may span multiple months → multiple budget recalculations needed
    - Batch budget recalculation after all transactions deleted
 
 3. **Large transaction sets:**
+
    - Consider batch deletion for performance (delete in chunks of 1000)
    - Add transaction/timeout handling for large datasets
 
@@ -256,6 +272,7 @@ class DeleteResponse:
 ## Phases
 
 ### Phase 1: Backend CRUD Layer
+
 - Add `delete_transactions_by_account` in `transaction.py`
 - Add `delete_transactions_by_category` in `transaction.py`
 - Add `count_transactions` in `transaction.py`
@@ -263,12 +280,13 @@ class DeleteResponse:
 - Modify `delete_category` in `category.py`
 
 ### Phase 2: Backend API Layer
+
 - Add count endpoint to `transactions.py` router
 - Update `accounts.py` router (remove IntegrityError handling)
 - Update `categories.py` router (remove IntegrityError handling)
 
 ### Phase 3: Frontend Updates
+
 - Add count API functions
 - Update account delete dialog with transaction warning
 - Update category delete dialog with transaction warning
-

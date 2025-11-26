@@ -50,12 +50,11 @@ def update_account(
     return account
 
 
-def delete_account(
-    db: Session, account_id: UUID, user_id: str
-) -> tuple[bool, int]:
+def delete_account(db: Session, account_id: UUID, user_id: str) -> tuple[bool, int]:
     """
     Delete an account by ID, verifying ownership.
     First deletes all associated transactions (cascade delete).
+    Also deletes any import value mappings pointing to this account.
 
     Returns:
         tuple[bool, int]: (success, deleted_transaction_count)
@@ -64,6 +63,7 @@ def delete_account(
     """
     # Import here to avoid circular imports
     from app.crud import transaction as transaction_crud
+    from app.crud import import_profile as import_crud
 
     account = get_account(db, account_id, user_id)
     if not account:
@@ -73,6 +73,9 @@ def delete_account(
     deleted_count = transaction_crud.delete_transactions_by_account(
         db, account_id, user_id
     )
+
+    # Delete any import mappings pointing to this account
+    import_crud.delete_mappings_by_internal_id(db, account_id, "account")
 
     db.delete(account)
     db.commit()

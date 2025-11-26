@@ -107,9 +107,7 @@ def get_value_mappings(
     db: Session, profile_id: UUID, mapping_type: str | None = None
 ) -> list[ImportValueMapping]:
     """Get all value mappings for a profile, optionally filtered by type."""
-    stmt = select(ImportValueMapping).where(
-        ImportValueMapping.profile_id == profile_id
-    )
+    stmt = select(ImportValueMapping).where(ImportValueMapping.profile_id == profile_id)
     if mapping_type:
         stmt = stmt.where(ImportValueMapping.mapping_type == mapping_type)
     return list(db.scalars(stmt).all())
@@ -196,3 +194,32 @@ def delete_value_mapping(db: Session, mapping_id: UUID) -> bool:
     db.commit()
     return True
 
+
+def delete_mappings_by_internal_id(
+    db: Session, internal_id: UUID, mapping_type: str
+) -> int:
+    """
+    Delete all value mappings that point to a specific internal_id.
+    Called when a category or account is deleted to clean up stale mappings.
+
+    Args:
+        db: Database session
+        internal_id: The category_id or account_id being deleted
+        mapping_type: 'category' or 'account'
+
+    Returns:
+        Number of mappings deleted
+    """
+    stmt = select(ImportValueMapping).where(
+        ImportValueMapping.internal_id == internal_id,
+        ImportValueMapping.mapping_type == mapping_type,
+    )
+    mappings = list(db.scalars(stmt).all())
+
+    for mapping in mappings:
+        db.delete(mapping)
+
+    if mappings:
+        db.commit()
+
+    return len(mappings)

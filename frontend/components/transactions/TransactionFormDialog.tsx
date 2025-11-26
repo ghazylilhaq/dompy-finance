@@ -173,7 +173,7 @@ export function TransactionFormDialog({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.filter(c => c.type === formData.type).map((c) => (
+                  {categories.filter(c => c.type === formData.type && !c.isSystem).map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
                     </SelectItem>

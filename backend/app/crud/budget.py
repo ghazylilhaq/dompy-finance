@@ -118,16 +118,19 @@ def recalculate_spent(
     """
     Recalculate spent_amount for a budget based on transactions.
     Called when transactions are created/updated/deleted.
+    Excludes transactions with hide_from_summary=True (transfers).
     """
     budget = get_budget_by_category_month(db, category_id, month, user_id)
     if not budget:
         return
 
     # Calculate sum of expense transactions for this user's category/month
+    # Excludes hidden transactions (like transfers)
     stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
         Transaction.user_id == user_id,
         Transaction.category_id == category_id,
         Transaction.type == "expense",
+        Transaction.hide_from_summary == False,
         extract("year", Transaction.date) == month.year,
         extract("month", Transaction.date) == month.month,
     )

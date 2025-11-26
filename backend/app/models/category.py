@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import String, ForeignKey, CheckConstraint
+from sqlalchemy import String, ForeignKey, CheckConstraint, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -24,6 +24,7 @@ class Category(Base):
         color: Hex color code for UI display
         icon: Lucide icon name for UI display
         parent_id: Optional reference to parent category
+        is_system: Whether this is a system-generated category (non-editable)
         created_at: Creation timestamp
         updated_at: Last update timestamp
 
@@ -51,6 +52,7 @@ class Category(Base):
         ForeignKey("categories.id", ondelete="SET NULL"),
         nullable=True,
     )
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc),
     )

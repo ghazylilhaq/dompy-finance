@@ -54,6 +54,11 @@ class TransactionResponse(TransactionBase):
     created_at: datetime
     updated_at: datetime
 
+    # Transfer fields
+    is_transfer: bool = False
+    transfer_group_id: Optional[str] = None
+    hide_from_summary: bool = False
+
     # Related data (populated in router)
     tags: list[str] = Field(default_factory=list)
     category_name: Optional[str] = None
@@ -80,8 +85,26 @@ class TransactionFilter(BaseModel):
     )
 
 
+class TransferCreate(BaseModel):
+    """Schema for creating a transfer between accounts."""
+
+    from_account_id: UUID = Field(..., description="Source account ID")
+    to_account_id: UUID = Field(..., description="Destination account ID")
+    amount: Decimal = Field(..., gt=0, description="Transfer amount (positive)")
+    date: datetime = Field(..., description="Transfer date/time")
+    description: str = Field(
+        default="Transfer", max_length=500, description="Transfer note/memo"
+    )
+    hide_from_summary: bool = Field(
+        default=True, description="Exclude from income/expense summaries"
+    )
 
 
+class TransferResponse(BaseModel):
+    """Schema for transfer response with both legs."""
 
+    model_config = ConfigDict(from_attributes=True)
 
-
+    transfer_group_id: str
+    outgoing_transaction: TransactionResponse
+    incoming_transaction: TransactionResponse

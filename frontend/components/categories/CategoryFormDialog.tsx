@@ -80,11 +80,12 @@ export function CategoryFormDialog({
   };
 
   // Filter potential parents:
-  // 1. Must be same type
-  // 2. Must be a top-level category (no parentId)
-  // 3. Must not be self (in edit mode)
+  // 1. Must not be a system category
+  // 2. Must be same type
+  // 3. Must be a top-level category (no parentId)
+  // 4. Must not be self (in edit mode)
   const potentialParents = existingCategories.filter(
-    c => c.type === type && !c.parentId && c.id !== initialData?.id
+    c => !c.isSystem && c.type === type && !c.parentId && c.id !== initialData?.id
   );
 
   return (

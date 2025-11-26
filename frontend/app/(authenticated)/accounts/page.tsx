@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Eye } from "lucide-react";
+import { Plus, Edit, Eye, ArrowLeftRight } from "lucide-react";
 import * as Icons from "lucide-react";
 import { AccountFormDialog } from "@/components/accounts/AccountFormDialog";
+import { TransferFormDialog } from "@/components/transfers";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -26,7 +27,8 @@ import { formatIDR } from "@/lib/formatCurrency";
 export default function AccountsPage() {
   const router = useRouter();
   const { accounts, isLoading: loading, error, mutate } = useAccounts();
-  const { createAccount, updateAccount, deleteAccount, getTransactionCount } = useApi();
+  const { createAccount, updateAccount, deleteAccount, getTransactionCount } =
+    useApi();
 
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -37,7 +39,14 @@ export default function AccountsPage() {
 
   // Delete Confirmation State
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteTransactionCount, setDeleteTransactionCount] = useState<number | null>(null);
+  const [deleteTransactionCount, setDeleteTransactionCount] = useState<
+    number | null
+  >(null);
+
+  // Transfer State
+  const [transferFromAccount, setTransferFromAccount] =
+    useState<Account | null>(null);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
 
   // Fetch transaction count when delete dialog opens
   useEffect(() => {
@@ -108,6 +117,15 @@ export default function AccountsPage() {
   const openEditDialog = (account: Account) => {
     setEditingAccount(account);
     setIsFormOpen(true);
+  };
+
+  const openTransferDialog = (account: Account) => {
+    setTransferFromAccount(account);
+    setIsTransferOpen(true);
+  };
+
+  const handleTransferSuccess = () => {
+    mutate(); // Refresh account balances
   };
 
   if (error) {
@@ -194,6 +212,15 @@ export default function AccountsPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 hover:bg-main/20"
+                    onClick={() => openTransferDialog(account)}
+                    title="Transfer"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 hover:bg-main/20"
                     onClick={() =>
                       router.push(`/transactions?account=${account.id}`)
                     }
@@ -240,8 +267,12 @@ export default function AccountsPage() {
               ) : deleteTransactionCount > 0 ? (
                 <>
                   Are you sure you want to delete this account? This will also
-                  delete <strong>{deleteTransactionCount} transaction{deleteTransactionCount !== 1 ? "s" : ""}</strong>.
-                  This action cannot be undone.
+                  delete{" "}
+                  <strong>
+                    {deleteTransactionCount} transaction
+                    {deleteTransactionCount !== 1 ? "s" : ""}
+                  </strong>
+                  . This action cannot be undone.
                 </>
               ) : (
                 "Are you sure you want to delete this account? This action cannot be undone."
@@ -257,11 +288,28 @@ export default function AccountsPage() {
               onClick={() => deleteId && handleDeleteAccount(deleteId)}
               disabled={isSubmitting || deleteTransactionCount === null}
             >
-              {isSubmitting ? "Deleting..." : deleteTransactionCount && deleteTransactionCount > 0 ? `Delete Account & ${deleteTransactionCount} Transaction${deleteTransactionCount !== 1 ? "s" : ""}` : "Delete"}
+              {isSubmitting
+                ? "Deleting..."
+                : deleteTransactionCount && deleteTransactionCount > 0
+                ? `Delete Account & ${deleteTransactionCount} Transaction${
+                    deleteTransactionCount !== 1 ? "s" : ""
+                  }`
+                : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Transfer Dialog */}
+      {transferFromAccount && (
+        <TransferFormDialog
+          isOpen={isTransferOpen}
+          onOpenChange={setIsTransferOpen}
+          fromAccount={transferFromAccount}
+          accounts={accounts}
+          onSuccess={handleTransferSuccess}
+        />
+      )}
     </div>
   );
 }

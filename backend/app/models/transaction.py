@@ -5,8 +5,9 @@ Transaction model - represents income and expense records.
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Optional
 
-from sqlalchemy import String, Numeric, ForeignKey, CheckConstraint
+from sqlalchemy import String, Numeric, ForeignKey, CheckConstraint, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -26,6 +27,9 @@ class Transaction(Base):
         category_id: Reference to the category
         account_id: Reference to the account
         description: Transaction description
+        is_transfer: Whether this is part of a transfer pair
+        transfer_group_id: Links two transfer legs together
+        hide_from_summary: Excludes from income/expense summaries
         created_at: Creation timestamp
         updated_at: Last update timestamp
 
@@ -57,6 +61,11 @@ class Transaction(Base):
         ForeignKey("accounts.id", ondelete="RESTRICT"),
     )
     description: Mapped[str] = mapped_column(String(500))
+    is_transfer: Mapped[bool] = mapped_column(Boolean, default=False)
+    transfer_group_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True, index=True
+    )
+    hide_from_summary: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc),
     )

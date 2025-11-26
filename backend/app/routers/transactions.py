@@ -14,6 +14,8 @@ from app.schemas.transaction import (
     TransactionUpdate,
     TransactionResponse,
     TransactionFilter,
+    TransferCreate,
+    TransferResponse,
 )
 from app.crud import transaction as crud
 
@@ -30,6 +32,9 @@ def transaction_to_response(tx) -> dict:
         "category_id": tx.category_id,
         "account_id": tx.account_id,
         "description": tx.description,
+        "is_transfer": tx.is_transfer,
+        "transfer_group_id": tx.transfer_group_id,
+        "hide_from_summary": tx.hide_from_summary,
         "created_at": tx.created_at,
         "updated_at": tx.updated_at,
         "tags": [t.name for t in tx.tags],
@@ -120,6 +125,38 @@ def create_transaction(
     return transaction_to_response(tx)
 
 
+@router.post(
+    "/transfer", response_model=TransferResponse, status_code=status.HTTP_201_CREATED
+)
+def create_transfer(
+    data: TransferCreate,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Create a transfer between two accounts.
+    Creates two linked transactions (outgoing and incoming).
+    Updates both account balances.
+    """
+    try:
+        outgoing, incoming = crud.create_transfer(db, data, user_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    # Reload to get relationships
+    outgoing = crud.get_transaction(db, outgoing.id, user_id)
+    incoming = crud.get_transaction(db, incoming.id, user_id)
+
+    return {
+        "transfer_group_id": outgoing.transfer_group_id,
+        "outgoing_transaction": transaction_to_response(outgoing),
+        "incoming_transaction": transaction_to_response(incoming),
+    }
+
+
 @router.patch("/{transaction_id}", response_model=TransactionResponse)
 def update_transaction(
     transaction_id: UUID,
@@ -130,15 +167,40 @@ def update_transaction(
     """
     Update an existing transaction.
     Recalculates account balance and budget spent amount.
+    For transfers, updates both linked legs.
     """
-    tx = crud.update_transaction(db, transaction_id, data, user_id)
-    if not tx:
+    # Check if this is a transfer
+    existing = crud.get_transaction(db, transaction_id, user_id)
+    if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transaction not found",
         )
-    # Reload to get relationships
-    tx = crud.get_transaction(db, tx.id, user_id)
+
+    if existing.is_transfer:
+        # Update both legs of the transfer
+        result = crud.update_transfer(db, transaction_id, data, user_id)
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found",
+            )
+        outgoing, incoming = result
+        # Return the transaction that was originally requested
+        if existing.type == "expense":
+            tx = crud.get_transaction(db, outgoing.id, user_id)
+        else:
+            tx = crud.get_transaction(db, incoming.id, user_id)
+    else:
+        tx = crud.update_transaction(db, transaction_id, data, user_id)
+        if not tx:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found",
+            )
+        # Reload to get relationships
+        tx = crud.get_transaction(db, tx.id, user_id)
+
     return transaction_to_response(tx)
 
 
@@ -151,8 +213,22 @@ def delete_transaction(
     """
     Delete a transaction by ID.
     Recalculates account balance and budget spent amount.
+    For transfers, deletes both linked legs.
     """
-    deleted = crud.delete_transaction(db, transaction_id, user_id)
+    # Check if this is a transfer
+    existing = crud.get_transaction(db, transaction_id, user_id)
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+
+    if existing.is_transfer:
+        # Delete both legs of the transfer
+        deleted = crud.delete_transfer(db, transaction_id, user_id)
+    else:
+        deleted = crud.delete_transaction(db, transaction_id, user_id)
+
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -47,6 +47,7 @@ class CategoryResponse(CategoryBase):
 
     id: UUID
     parent_id: Optional[UUID] = None
+    is_system: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -55,10 +56,3 @@ class CategoryWithChildren(CategoryResponse):
     """Schema for category with nested children (hierarchical view)."""
 
     children: list["CategoryResponse"] = Field(default_factory=list)
-
-
-
-
-
-
-

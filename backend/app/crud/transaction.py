@@ -2,6 +2,7 @@
 CRUD operations for Transaction entity.
 """
 
+import uuid as uuid_module
 from datetime import date
 from decimal import Decimal
 from uuid import UUID
@@ -14,10 +15,12 @@ from app.schemas.transaction import (
     TransactionCreate,
     TransactionUpdate,
     TransactionFilter,
+    TransferCreate,
 )
 from app.crud import tag as tag_crud
 from app.crud import account as account_crud
 from app.crud import budget as budget_crud
+from app.crud import category as category_crud
 
 
 def get_transactions(
@@ -177,9 +180,7 @@ def update_transaction(
 
     # Apply new transaction effect
     new_delta = (
-        transaction.amount
-        if transaction.type == "income"
-        else -transaction.amount
+        transaction.amount if transaction.type == "income" else -transaction.amount
     )
     account_crud.update_balance(db, transaction.account_id, new_delta, user_id)
 
@@ -359,3 +360,220 @@ def delete_transactions_by_category(
         budget_crud.recalculate_spent(db, cat_id, month_date, user_id)
 
     return len(transactions)
+
+
+# =============================================================================
+# Transfer Operations
+# =============================================================================
+
+
+def create_transfer(
+    db: Session, data: TransferCreate, user_id: str
+) -> tuple[Transaction, Transaction]:
+    """
+    Create a transfer between two accounts.
+    Creates two linked transactions (outgoing and incoming) in a single DB transaction.
+
+    Returns tuple of (outgoing_transaction, incoming_transaction).
+    """
+    # Validate accounts are different
+    if data.from_account_id == data.to_account_id:
+        raise ValueError("Cannot transfer to the same account")
+
+    # Ensure transfer categories exist
+    transfer_cats = category_crud.ensure_transfer_categories(db, user_id)
+
+    # Generate transfer group ID
+    transfer_group_id = str(uuid_module.uuid4())
+
+    # Create outgoing transaction (expense from source account)
+    outgoing = Transaction(
+        user_id=user_id,
+        date=data.date,
+        type="expense",
+        amount=data.amount,
+        category_id=transfer_cats["outgoing"],
+        account_id=data.from_account_id,
+        description=data.description,
+        is_transfer=True,
+        transfer_group_id=transfer_group_id,
+        hide_from_summary=data.hide_from_summary,
+        tags=[],
+    )
+    db.add(outgoing)
+
+    # Create incoming transaction (income to destination account)
+    incoming = Transaction(
+        user_id=user_id,
+        date=data.date,
+        type="income",
+        amount=data.amount,
+        category_id=transfer_cats["incoming"],
+        account_id=data.to_account_id,
+        description=data.description,
+        is_transfer=True,
+        transfer_group_id=transfer_group_id,
+        hide_from_summary=data.hide_from_summary,
+        tags=[],
+    )
+    db.add(incoming)
+    db.flush()
+
+    # Update account balances
+    # Source account: subtract amount
+    account_crud.update_balance(db, data.from_account_id, -data.amount, user_id)
+    # Destination account: add amount
+    account_crud.update_balance(db, data.to_account_id, data.amount, user_id)
+
+    db.commit()
+    db.refresh(outgoing)
+    db.refresh(incoming)
+
+    return (outgoing, incoming)
+
+
+def get_transfer_pair(
+    db: Session, transfer_group_id: str, user_id: str
+) -> list[Transaction]:
+    """
+    Get both transactions in a transfer pair by transfer_group_id.
+    """
+    stmt = (
+        select(Transaction)
+        .where(
+            Transaction.transfer_group_id == transfer_group_id,
+            Transaction.user_id == user_id,
+        )
+        .options(
+            joinedload(Transaction.category),
+            joinedload(Transaction.account),
+            joinedload(Transaction.tags),
+        )
+    )
+    return list(db.scalars(stmt).unique().all())
+
+
+def get_paired_transaction(
+    db: Session, transaction: Transaction, user_id: str
+) -> Transaction | None:
+    """
+    Get the paired transaction for a transfer leg.
+    """
+    if not transaction.is_transfer or not transaction.transfer_group_id:
+        return None
+
+    stmt = (
+        select(Transaction)
+        .where(
+            Transaction.transfer_group_id == transaction.transfer_group_id,
+            Transaction.user_id == user_id,
+            Transaction.id != transaction.id,
+        )
+        .options(
+            joinedload(Transaction.category),
+            joinedload(Transaction.account),
+            joinedload(Transaction.tags),
+        )
+    )
+    return db.scalars(stmt).first()
+
+
+def update_transfer(
+    db: Session,
+    transaction_id: UUID,
+    data: TransactionUpdate,
+    user_id: str,
+) -> tuple[Transaction, Transaction] | None:
+    """
+    Update a transfer transaction. Updates both legs with shared fields.
+
+    Shared fields that update both legs: amount, date, description, hide_from_summary
+    Account and category changes are not allowed for transfers.
+
+    Returns tuple of (updated_outgoing, updated_incoming) or None if not found.
+    """
+    transaction = get_transaction(db, transaction_id, user_id)
+    if not transaction or not transaction.is_transfer:
+        return None
+
+    paired = get_paired_transaction(db, transaction, user_id)
+    if not paired:
+        return None
+
+    # Determine which is outgoing and which is incoming
+    if transaction.type == "expense":
+        outgoing, incoming = transaction, paired
+    else:
+        outgoing, incoming = paired, transaction
+
+    update_data = data.model_dump(exclude_unset=True)
+
+    # Remove fields that shouldn't be changed for transfers
+    update_data.pop("type", None)
+    update_data.pop("category_id", None)
+    update_data.pop("account_id", None)
+    update_data.pop("tags", None)
+
+    # Handle amount change - need to recalculate balances
+    if "amount" in update_data:
+        old_amount = outgoing.amount
+        new_amount = update_data["amount"]
+
+        # Reverse old effect and apply new
+        # Outgoing account: was -old, now -new, delta = old - new
+        account_crud.update_balance(
+            db, outgoing.account_id, old_amount - new_amount, user_id
+        )
+        # Incoming account: was +old, now +new, delta = new - old
+        account_crud.update_balance(
+            db, incoming.account_id, new_amount - old_amount, user_id
+        )
+
+    # Apply updates to both transactions
+    for field, value in update_data.items():
+        setattr(outgoing, field, value)
+        setattr(incoming, field, value)
+
+    db.commit()
+    db.refresh(outgoing)
+    db.refresh(incoming)
+
+    return (outgoing, incoming)
+
+
+def delete_transfer(db: Session, transaction_id: UUID, user_id: str) -> bool:
+    """
+    Delete a transfer transaction. Deletes both legs.
+    Reverses account balance changes for both accounts.
+
+    Returns True if deleted, False if not found or not a transfer.
+    """
+    transaction = get_transaction(db, transaction_id, user_id)
+    if not transaction or not transaction.is_transfer:
+        return False
+
+    paired = get_paired_transaction(db, transaction, user_id)
+    if not paired:
+        # Orphaned transfer leg - just delete it
+        db.delete(transaction)
+        db.commit()
+        return True
+
+    # Determine which is outgoing and which is incoming
+    if transaction.type == "expense":
+        outgoing, incoming = transaction, paired
+    else:
+        outgoing, incoming = paired, transaction
+
+    # Reverse account balance changes
+    # Outgoing was -amount, so add it back
+    account_crud.update_balance(db, outgoing.account_id, outgoing.amount, user_id)
+    # Incoming was +amount, so subtract it
+    account_crud.update_balance(db, incoming.account_id, -incoming.amount, user_id)
+
+    # Delete both transactions
+    db.delete(outgoing)
+    db.delete(incoming)
+    db.commit()
+
+    return True

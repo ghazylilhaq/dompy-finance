@@ -16,6 +16,9 @@ import {
   MappingItem,
   ImportResult,
   ParsedRow,
+  TransferCreate,
+  TransferResponse,
+  PreviewResult,
 } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -448,6 +451,16 @@ export function useApi() {
     [apiRequest]
   );
 
+  // Transfers
+  const createTransfer = useCallback(
+    (data: TransferCreate) =>
+      apiRequest<TransferResponse>("/api/transactions/transfer", {
+        method: "POST",
+        body: JSON.stringify(camelToSnake(data)),
+      }),
+    [apiRequest]
+  );
+
   // Tags
   const getTags = useCallback(
     () => apiRequest<Tag[]>("/api/tags"),
@@ -486,12 +499,49 @@ export function useApi() {
     [getToken, isSignedIn]
   );
 
+  const previewImport = useCallback(
+    async (
+      profileId: string,
+      parsedRows: ParsedRow[],
+      categoryMappings: MappingItem[],
+      accountMappings: MappingItem[]
+    ): Promise<PreviewResult> => {
+      const payload = {
+        profile_id: profileId,
+        parsed_rows: parsedRows.map((r) => ({
+          row_index: r.rowIndex,
+          external_id: r.externalId,
+          date: r.date,
+          category_value: r.categoryValue,
+          account_value: r.accountValue,
+          amount: r.amount,
+          description: r.description,
+        })),
+        category_mappings: categoryMappings.map((m) => ({
+          csv_value: m.csvValue,
+          internal_id: m.internalId,
+        })),
+        account_mappings: accountMappings.map((m) => ({
+          csv_value: m.csvValue,
+          internal_id: m.internalId,
+        })),
+      };
+
+      return apiRequest<PreviewResult>("/api/imports/preview", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+    [apiRequest]
+  );
+
   const confirmImport = useCallback(
     async (
       profileId: string,
       categoryMappings: MappingItem[],
       accountMappings: MappingItem[],
-      parsedRows: ParsedRow[]
+      parsedRows: ParsedRow[],
+      excludedIndices: number[] = []
     ): Promise<ImportResult> => {
       const payload = {
         profile_id: profileId,
@@ -512,6 +562,7 @@ export function useApi() {
           amount: r.amount,
           description: r.description,
         })),
+        excluded_indices: excludedIndices,
       };
 
       return apiRequest<ImportResult>("/api/imports/confirm", {
@@ -554,10 +605,13 @@ export function useApi() {
     updateTransaction,
     deleteTransaction,
     getTransactionCount,
+    // Transfers
+    createTransfer,
     // Tags
     getTags,
     // Imports
     parseImportFile,
+    previewImport,
     confirmImport,
   };
 }

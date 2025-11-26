@@ -86,8 +86,11 @@ export function BudgetFormDialog({
 
   // Filter logic:
   // If in edit mode, we should include the current category in the list even if it "has a budget" (which is this one).
-  // Otherwise, exclude used categories.
+  // Otherwise, exclude used categories and system categories.
   const availableCategories = categories.filter((cat) => {
+    // Always exclude system categories (transfer categories)
+    if (cat.isSystem) return false;
+    
     if (initialData && cat.id === initialData.categoryId) return true;
 
     const hasBudget = existingBudgets.some(

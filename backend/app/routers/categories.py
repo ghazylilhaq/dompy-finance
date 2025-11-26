@@ -27,6 +27,8 @@ def list_categories(
     user_id: str = Depends(get_current_user),
 ):
     """Get all categories for the current user, optionally filtered by type."""
+    # Ensure system categories (Transfer, Incoming/Outgoing transfer) exist
+    crud.ensure_transfer_categories(db, user_id)
     return crud.get_categories(db, user_id, category_type=type)
 
 
@@ -39,6 +41,8 @@ def list_hierarchical(
     Get categories organized hierarchically.
     Returns dict with 'income' and 'expense' keys containing parent categories with children.
     """
+    # Ensure system categories (Transfer, Incoming/Outgoing transfer) exist
+    crud.ensure_transfer_categories(db, user_id)
     result = crud.get_categories_hierarchical(db, user_id)
 
     # Convert to response format with children

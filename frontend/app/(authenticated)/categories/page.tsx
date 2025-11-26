@@ -116,9 +116,12 @@ export default function CategoriesPage() {
     setIsDialogOpen(true);
   };
 
+  // Filter out system categories (transfer categories) from display
+  const userCategories = categories.filter((c) => !c.isSystem);
+
   // Grouping Logic
-  const incomeCategories = categories.filter((c) => c.type === "income");
-  const expenseCategories = categories.filter((c) => c.type === "expense");
+  const incomeCategories = userCategories.filter((c) => c.type === "income");
+  const expenseCategories = userCategories.filter((c) => c.type === "expense");
 
   const organizeHierarchy = (cats: Category[]) => {
     const parents = cats.filter((c) => !c.parentId);
@@ -291,7 +294,7 @@ export default function CategoriesPage() {
             <Skeleton className="h-48 rounded-base" />
           </div>
         </div>
-      ) : categories.length === 0 ? (
+      ) : userCategories.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed border-border rounded-base bg-main/5">
           <p className="text-muted-foreground font-bold mb-2">
             No categories found.
@@ -324,7 +327,7 @@ export default function CategoriesPage() {
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onSubmit={editingCategory ? handleEditCategory : handleAddCategory}
-        existingCategories={categories}
+        existingCategories={userCategories}
         initialData={editingCategory}
         onDelete={editingCategory ? () => confirmDelete(editingCategory.id) : undefined}
       />

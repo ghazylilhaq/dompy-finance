@@ -42,19 +42,21 @@ def get_stats(
     current_month = now.month
     current_year = now.year
 
-    # Monthly income for user
+    # Monthly income for user (excluding hidden transfers)
     income_stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
         Transaction.user_id == user_id,
         Transaction.type == "income",
+        Transaction.hide_from_summary == False,
         extract("month", Transaction.date) == current_month,
         extract("year", Transaction.date) == current_year,
     )
     monthly_income = db.scalar(income_stmt)
 
-    # Monthly expenses for user
+    # Monthly expenses for user (excluding hidden transfers)
     expense_stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
         Transaction.user_id == user_id,
         Transaction.type == "expense",
+        Transaction.hide_from_summary == False,
         extract("month", Transaction.date) == current_month,
         extract("year", Transaction.date) == current_year,
     )
