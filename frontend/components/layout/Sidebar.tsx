@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  ArrowRightLeft, 
-  PiggyBank, 
-  List, 
-  Wallet, 
-  Settings, 
-  Menu
+import {
+  LayoutDashboard,
+  ArrowRightLeft,
+  PiggyBank,
+  List,
+  Wallet,
+  Settings,
+  Menu,
+  Upload,
 } from "lucide-react";
 import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import { useState } from "react";
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
+  { name: "Import", href: "/transactions/import", icon: Upload },
   { name: "Budgets", href: "/budgets", icon: PiggyBank },
   { name: "Categories", href: "/categories", icon: List },
   { name: "Accounts", href: "/accounts", icon: Wallet },
@@ -38,9 +40,9 @@ export function Sidebar() {
     <>
       {/* Mobile Toggle Button */}
       <div className="md:hidden fixed top-4 left-4 z-50">
-        <Button 
-          variant="neutral" 
-          size="icon" 
+        <Button
+          variant="neutral"
+          size="icon"
           onClick={() => setIsMobileOpen(!isMobileOpen)}
           className="rounded-full"
         >
@@ -49,18 +51,18 @@ export function Sidebar() {
       </div>
 
       {/* Sidebar Container */}
-      <aside 
+      <aside
         className={cn(
           "fixed top-0 left-0 z-40 h-screen bg-secondary-background border-r-2 border-border transition-all duration-300 ease-in-out",
           "w-16 md:w-64", // Mobile: icon-only (w-16), Desktop: full (w-64)
-          // On mobile, if open, maybe expand? 
+          // On mobile, if open, maybe expand?
           // Actually, the requirement said "Sidebar collapses to icon-only rail on mobile".
-          // So it's always visible as a rail on mobile? 
+          // So it's always visible as a rail on mobile?
           // But usually on mobile screen (375px), a rail takes space.
           // Let's stick to: Mobile = hidden by default or icon rail?
           // "Sidebar collapses to icon-only rail on mobile" -> implies it's always there but small.
           // Let's try that.
-          "translate-x-0" 
+          "translate-x-0"
         )}
       >
         <div className="flex flex-col h-full">
@@ -79,14 +81,14 @@ export function Sidebar() {
               const Icon = item.icon;
 
               return (
-                <Link 
-                  key={item.href} 
+                <Link
+                  key={item.href}
                   href={item.href}
                   className={cn(
                     "flex items-center justify-center md:justify-start p-3 rounded-base transition-all duration-200 group",
                     "hover:bg-main hover:text-main-foreground border-2 border-transparent hover:border-border hover:shadow-shadow",
-                    isActive 
-                      ? "bg-main text-main-foreground border-border shadow-shadow" 
+                    isActive
+                      ? "bg-main text-main-foreground border-border shadow-shadow"
                       : "text-foreground"
                   )}
                   title={item.name}
@@ -104,7 +106,7 @@ export function Sidebar() {
           <div className="p-4 border-t-2 border-border">
             <div className="flex items-center justify-center md:justify-start gap-3">
               <SignedIn>
-                <UserButton 
+                <UserButton
                   afterSignOutUrl="/"
                   appearance={{
                     elements: {

@@ -15,7 +15,14 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, FilterX, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import {
+  Search,
+  FilterX,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Upload,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -246,11 +253,21 @@ function TransactionsPageContent() {
         title="Transactions"
         description="Manage your income and expenses"
       >
-        <Button onClick={openCreateDialog}>
-          <div className="flex items-center">
-            <Plus className="mr-2 h-4 w-4" /> Add Transaction
-          </div>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="neutral"
+            onClick={() => router.push("/transactions/import")}
+          >
+            <div className="flex items-center">
+              <Upload className="mr-2 h-4 w-4" /> Import
+            </div>
+          </Button>
+          <Button onClick={openCreateDialog}>
+            <div className="flex items-center">
+              <Plus className="mr-2 h-4 w-4" /> Add Transaction
+            </div>
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Month Navigation */}

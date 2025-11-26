@@ -12,7 +12,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import accounts, categories, budgets, transactions, tags, dashboard
+from app.routers import (
+    accounts,
+    categories,
+    budgets,
+    transactions,
+    tags,
+    dashboard,
+    imports,
+)
 
 
 # Create FastAPI application
@@ -64,6 +72,11 @@ app.include_router(
     prefix="/api/dashboard",
     tags=["Dashboard"],
 )
+app.include_router(
+    imports.router,
+    prefix="/api/imports",
+    tags=["Imports"],
+)
 
 
 @app.get("/health", tags=["Health"])
@@ -81,10 +94,3 @@ def root():
         "docs": "/docs",
         "health": "/health",
     }
-
-
-
-
-
-
-

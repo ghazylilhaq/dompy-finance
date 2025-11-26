@@ -8,6 +8,7 @@ from app.models.category import Category
 from app.models.budget import Budget
 from app.models.tag import Tag, transaction_tags
 from app.models.transaction import Transaction
+from app.models.import_profile import ImportProfile, ImportValueMapping
 
 __all__ = [
     "Account",
@@ -16,11 +17,6 @@ __all__ = [
     "Tag",
     "Transaction",
     "transaction_tags",
+    "ImportProfile",
+    "ImportValueMapping",
 ]
-
-
-
-
-
-
-

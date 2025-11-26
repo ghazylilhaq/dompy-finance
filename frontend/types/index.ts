@@ -1,6 +1,11 @@
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = "income" | "expense";
 
-export type AccountType = 'cash' | 'bank' | 'e-wallet' | 'credit card' | 'credit_card';
+export type AccountType =
+  | "cash"
+  | "bank"
+  | "e-wallet"
+  | "credit card"
+  | "credit_card";
 
 export interface Category {
   id: string;
@@ -54,4 +59,47 @@ export interface Transaction {
   accountName?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// =============================================================================
+// Import Types
+// =============================================================================
+
+export interface ImportProfile {
+  id: string;
+  name: string;
+  columnMapping: Record<string, string>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ParsedRow {
+  rowIndex: number;
+  externalId: string;
+  date: string;
+  categoryValue: string;
+  accountValue: string;
+  amount: number;
+  description: string;
+}
+
+export interface ParseResult {
+  profileId: string;
+  totalRows: number;
+  parsedRows: ParsedRow[];
+  unmappedCategories: string[];
+  unmappedAccounts: string[];
+  existingCategoryMappings: Record<string, string>;
+  existingAccountMappings: Record<string, string>;
+}
+
+export interface MappingItem {
+  csvValue: string;
+  internalId: string;
+}
+
+export interface ImportResult {
+  importedCount: number;
+  skippedCount: number;
+  errors: string[];
 }

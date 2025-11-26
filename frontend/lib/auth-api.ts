@@ -7,10 +7,18 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useCallback } from "react";
-import { Account, Budget, Category, Transaction } from "@/types";
+import {
+  Account,
+  Budget,
+  Category,
+  Transaction,
+  ParseResult,
+  MappingItem,
+  ImportResult,
+  ParsedRow,
+} from "@/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // =============================================================================
 // Utility Functions
@@ -300,7 +308,9 @@ export function useApi() {
 
   const getBudget = useCallback(
     async (id: string) => {
-      const response = await apiRequest<BudgetApiResponse>(`/api/budgets/${id}`);
+      const response = await apiRequest<BudgetApiResponse>(
+        `/api/budgets/${id}`
+      );
       return transformBudget(response);
     },
     [apiRequest]
@@ -324,11 +334,15 @@ export function useApi() {
 
   const updateBudget = useCallback(
     async (id: string, data: { limit?: number }) => {
-      const payload = data.limit !== undefined ? { limit_amount: data.limit } : {};
-      const response = await apiRequest<BudgetApiResponse>(`/api/budgets/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
+      const payload =
+        data.limit !== undefined ? { limit_amount: data.limit } : {};
+      const response = await apiRequest<BudgetApiResponse>(
+        `/api/budgets/${id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
       return transformBudget(response);
     },
     [apiRequest]
@@ -356,14 +370,16 @@ export function useApi() {
     (filters: TransactionFilters = {}) => {
       const params = new URLSearchParams();
       if (filters.search) params.set("search", filters.search);
-      if (filters.type && filters.type !== "all") params.set("type", filters.type);
+      if (filters.type && filters.type !== "all")
+        params.set("type", filters.type);
       if (filters.categoryId && filters.categoryId !== "all")
         params.set("category_id", filters.categoryId);
       if (filters.accountId && filters.accountId !== "all")
         params.set("account_id", filters.accountId);
       if (filters.month) params.set("month", filters.month);
       if (filters.skip !== undefined) params.set("skip", String(filters.skip));
-      if (filters.limit !== undefined) params.set("limit", String(filters.limit));
+      if (filters.limit !== undefined)
+        params.set("limit", String(filters.limit));
 
       const queryString = params.toString();
       const endpoint = queryString
@@ -421,6 +437,74 @@ export function useApi() {
     [apiRequest]
   );
 
+  // Imports
+  const parseImportFile = useCallback(
+    async (file: File): Promise<ParseResult> => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const headers: Record<string, string> = {};
+
+      if (isSignedIn) {
+        const token = await getToken();
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/imports/parse`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || `API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return snakeToCamel(data) as ParseResult;
+    },
+    [getToken, isSignedIn]
+  );
+
+  const confirmImport = useCallback(
+    async (
+      profileId: string,
+      categoryMappings: MappingItem[],
+      accountMappings: MappingItem[],
+      parsedRows: ParsedRow[]
+    ): Promise<ImportResult> => {
+      const payload = {
+        profile_id: profileId,
+        category_mappings: categoryMappings.map((m) => ({
+          csv_value: m.csvValue,
+          internal_id: m.internalId,
+        })),
+        account_mappings: accountMappings.map((m) => ({
+          csv_value: m.csvValue,
+          internal_id: m.internalId,
+        })),
+        parsed_rows: parsedRows.map((r) => ({
+          row_index: r.rowIndex,
+          external_id: r.externalId,
+          date: r.date,
+          category_value: r.categoryValue,
+          account_value: r.accountValue,
+          amount: r.amount,
+          description: r.description,
+        })),
+      };
+
+      return apiRequest<ImportResult>("/api/imports/confirm", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+    [apiRequest]
+  );
+
   return {
     isLoaded,
     isSignedIn,
@@ -454,13 +538,8 @@ export function useApi() {
     deleteTransaction,
     // Tags
     getTags,
+    // Imports
+    parseImportFile,
+    confirmImport,
   };
 }
-
-
-
-
-
-
-
-
