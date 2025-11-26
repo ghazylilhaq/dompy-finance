@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TransactionTable } from "@/components/transactions/TransactionTable";
+import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Wallet, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import {
+  Plus,
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+} from "lucide-react";
 import Link from "next/link";
 import { formatIDR } from "@/lib/formatCurrency";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,20 +22,51 @@ import { useApi, DashboardStats } from "@/lib/auth-api";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
+    []
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { 
-    isLoaded, 
-    isSignedIn, 
-    getDashboardStats, 
-    getRecentTransactions, 
-    getCategories, 
-    getAccounts 
+  const {
+    isLoaded,
+    isSignedIn,
+    getDashboardStats,
+    getRecentTransactions,
+    getCategories,
+    getAccounts,
+    createTransaction,
   } = useApi();
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Don't set loading to true here to avoid full page flicker on refresh
+      setError(null);
+
+      const [statsData, transactionsData, categoriesData, accountsData] =
+        await Promise.all([
+          getDashboardStats(),
+          getRecentTransactions(),
+          getCategories(),
+          getAccounts(),
+        ]);
+
+      setStats(statsData);
+      setRecentTransactions(transactionsData);
+      setCategories(categoriesData);
+      setAccounts(accountsData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Wait for auth to be ready
@@ -36,36 +74,37 @@ export default function Dashboard() {
       return;
     }
 
-    async function fetchDashboardData() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [statsData, transactionsData, categoriesData, accountsData] =
-          await Promise.all([
-            getDashboardStats(),
-            getRecentTransactions(),
-            getCategories(),
-            getAccounts(),
-          ]);
-
-        setStats(statsData);
-        setRecentTransactions(transactionsData);
-        setCategories(categoriesData);
-        setAccounts(accountsData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
+    setLoading(true);
     fetchDashboardData();
-  }, [isLoaded, isSignedIn, getDashboardStats, getRecentTransactions, getCategories, getAccounts]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    getDashboardStats,
+    getRecentTransactions,
+    getCategories,
+    getAccounts,
+  ]);
+
+  const handleAddTransaction = async (
+    txData: Omit<Transaction, "id"> | Transaction
+  ) => {
+    try {
+      setIsSubmitting(true);
+      await createTransaction(txData as Omit<Transaction, "id">);
+      await fetchDashboardData(); // Refresh all data
+      setIsDialogOpen(false);
+    } catch (err) {
+      console.error("Save transaction error:", err);
+      alert(err instanceof Error ? err.message : "Failed to save transaction");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Get current month name
-  const currentMonthName = new Date().toLocaleString("default", { month: "short" });
+  const currentMonthName = new Date().toLocaleString("default", {
+    month: "short",
+  });
 
   // Show loading while auth is loading
   if (!isLoaded) {
@@ -101,15 +140,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <PageHeader 
-        title="Dashboard" 
+      <PageHeader
+        title="Dashboard"
         description="Overview of your financial health"
       >
-        <Link href="/transactions">
-          <Button>
+        <Button onClick={() => setIsDialogOpen(true)}>
+          <div className="flex items-center">
             <Plus className="mr-2 h-4 w-4" /> Add Transaction
-          </Button>
-        </Link>
+          </div>
+        </Button>
       </PageHeader>
 
       {/* Stats Grid */}
@@ -122,27 +161,27 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-        <StatCard 
-          title="Total Balance" 
+            <StatCard
+              title="Total Balance"
               value={formatIDR(stats?.totalBalance || 0)}
-          icon={Wallet} 
-          description="Across all accounts"
-          iconColor="bg-chart-2-blue"
-        />
-        <StatCard 
+              icon={Wallet}
+              description="Across all accounts"
+              iconColor="bg-chart-2-blue"
+            />
+            <StatCard
               title={`Income (${currentMonthName})`}
               value={formatIDR(stats?.monthlyIncome || 0)}
-          icon={TrendingUp} 
-          description="This month"
-          iconColor="bg-chart-1-green"
-        />
-        <StatCard 
+              icon={TrendingUp}
+              description="This month"
+              iconColor="bg-chart-1-green"
+            />
+            <StatCard
               title={`Expense (${currentMonthName})`}
               value={formatIDR(stats?.monthlyExpense || 0)}
-          icon={TrendingDown} 
-          description="This month"
-          iconColor="bg-chart-4-red"
-        />
+              icon={TrendingDown}
+              description="This month"
+              iconColor="bg-chart-4-red"
+            />
           </>
         )}
       </div>
@@ -162,8 +201,13 @@ export default function Dashboard() {
         {/* Recent Transactions */}
         <div className="col-span-3 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-heading font-bold">Recent Transactions</h3>
-            <Link href="/transactions" className="text-sm text-main hover:underline font-bold">
+            <h3 className="text-xl font-heading font-bold">
+              Recent Transactions
+            </h3>
+            <Link
+              href="/transactions"
+              className="text-sm text-main hover:underline font-bold"
+            >
               View All
             </Link>
           </div>
@@ -174,14 +218,22 @@ export default function Dashboard() {
               <Skeleton className="h-16 rounded-base" />
             </div>
           ) : (
-          <TransactionTable 
-            transactions={recentTransactions} 
-            categories={categories} 
-            accounts={accounts} 
-          />
+            <TransactionTable
+              transactions={recentTransactions}
+              categories={categories}
+              accounts={accounts}
+            />
           )}
         </div>
       </div>
+
+      <TransactionFormDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        categories={categories}
+        accounts={accounts}
+        onAddTransaction={handleAddTransaction}
+      />
     </div>
   );
 }

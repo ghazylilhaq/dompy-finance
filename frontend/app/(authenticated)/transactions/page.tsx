@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, FilterX, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, FilterX, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -248,7 +248,7 @@ function TransactionsPageContent() {
       >
         <Button onClick={openCreateDialog}>
           <div className="flex items-center">
-            <Search className="mr-2 h-4 w-4" /> Add Transaction
+            <Plus className="mr-2 h-4 w-4" /> Add Transaction
           </div>
         </Button>
       </PageHeader>
