@@ -112,16 +112,35 @@ def update_category(
     return category
 
 
-def delete_category(db: Session, category_id: UUID, user_id: str) -> bool:
+def delete_category(
+    db: Session, category_id: UUID, user_id: str
+) -> tuple[bool, int]:
     """
     Delete a category by ID, verifying ownership.
+    First deletes all associated transactions (cascade delete).
     Children will have their parent_id set to NULL (ON DELETE SET NULL).
-    Will fail if category has associated transactions.
+
+    Note: Only deletes transactions for this category, not child categories.
+    Child categories retain their transactions and become root categories.
+
+    Returns:
+        tuple[bool, int]: (success, deleted_transaction_count)
+        - (False, 0) if category not found
+        - (True, count) if deleted successfully
     """
+    # Import here to avoid circular imports
+    from app.crud import transaction as transaction_crud
+
     category = get_category(db, category_id, user_id)
     if not category:
-        return False
+        return (False, 0)
+
+    # Cascade delete all transactions for this category only
+    # (child categories retain their transactions)
+    deleted_count = transaction_crud.delete_transactions_by_category(
+        db, category_id, user_id
+    )
 
     db.delete(category)
     db.commit()
-    return True
+    return (True, deleted_count)

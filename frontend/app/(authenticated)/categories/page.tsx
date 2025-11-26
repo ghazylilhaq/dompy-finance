@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,14 @@ import { Plus, Edit, Eye } from "lucide-react";
 import * as Icons from "lucide-react";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { Category } from "@/types";
 import { useCategories } from "@/lib/hooks";
@@ -31,12 +39,27 @@ const getIcon = (
 export default function CategoriesPage() {
   const router = useRouter();
   const { categories, isLoading: loading, error, mutate } = useCategories();
-  const { createCategory, updateCategory, deleteCategory } = useApi();
+  const { createCategory, updateCategory, deleteCategory, getTransactionCount } = useApi();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>(
     undefined
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Delete Confirmation State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTransactionCount, setDeleteTransactionCount] = useState<number | null>(null);
+
+  // Fetch transaction count when delete dialog opens
+  useEffect(() => {
+    if (deleteId) {
+      setDeleteTransactionCount(null);
+      getTransactionCount({ categoryId: deleteId })
+        .then(setDeleteTransactionCount)
+        .catch(() => setDeleteTransactionCount(0));
+    }
+  }, [deleteId, getTransactionCount]);
 
   const handleAddCategory = async (newCategoryData: Omit<Category, "id">) => {
     try {
@@ -63,17 +86,23 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleDeleteCategory = async () => {
-    if (!editingCategory) return;
+  const confirmDelete = (id: string) => {
+    setIsDialogOpen(false); // Close edit dialog if open
+    setDeleteId(id);
+  };
 
+  const handleDeleteCategory = async (id: string) => {
     try {
-      await deleteCategory(editingCategory.id);
+      setIsSubmitting(true);
+      await deleteCategory(id);
       mutate(); // Refresh list
       setEditingCategory(undefined);
-      setIsDialogOpen(false);
+      setDeleteId(null);
     } catch (err) {
       console.error("Delete category error:", err);
       alert(err instanceof Error ? err.message : "Failed to delete category");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -297,8 +326,44 @@ export default function CategoriesPage() {
         onSubmit={editingCategory ? handleEditCategory : handleAddCategory}
         existingCategories={categories}
         initialData={editingCategory}
-        onDelete={editingCategory ? handleDeleteCategory : undefined}
+        onDelete={editingCategory ? () => confirmDelete(editingCategory.id) : undefined}
       />
+
+      <Dialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Category</DialogTitle>
+            <DialogDescription>
+              {deleteTransactionCount === null ? (
+                "Loading..."
+              ) : deleteTransactionCount > 0 ? (
+                <>
+                  Are you sure you want to delete this category? This will also
+                  delete <strong>{deleteTransactionCount} transaction{deleteTransactionCount !== 1 ? "s" : ""}</strong>.
+                  This action cannot be undone.
+                </>
+              ) : (
+                "Are you sure you want to delete this category? This action cannot be undone."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteId && handleDeleteCategory(deleteId)}
+              disabled={isSubmitting || deleteTransactionCount === null}
+            >
+              {isSubmitting ? "Deleting..." : deleteTransactionCount && deleteTransactionCount > 0 ? `Delete Category & ${deleteTransactionCount} Transaction${deleteTransactionCount !== 1 ? "s" : ""}` : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

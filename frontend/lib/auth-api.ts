@@ -431,6 +431,23 @@ export function useApi() {
     [getToken, isSignedIn]
   );
 
+  const getTransactionCount = useCallback(
+    async (filters: { accountId?: string; categoryId?: string } = {}) => {
+      const params = new URLSearchParams();
+      if (filters.accountId) params.set("account_id", filters.accountId);
+      if (filters.categoryId) params.set("category_id", filters.categoryId);
+
+      const queryString = params.toString();
+      const endpoint = queryString
+        ? `/api/transactions/count?${queryString}`
+        : "/api/transactions/count";
+
+      const result = await apiRequest<{ count: number }>(endpoint);
+      return result.count;
+    },
+    [apiRequest]
+  );
+
   // Tags
   const getTags = useCallback(
     () => apiRequest<Tag[]>("/api/tags"),
@@ -536,6 +553,7 @@ export function useApi() {
     createTransaction,
     updateTransaction,
     deleteTransaction,
+    getTransactionCount,
     // Tags
     getTags,
     // Imports

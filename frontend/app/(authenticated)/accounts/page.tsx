@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ import { formatIDR } from "@/lib/formatCurrency";
 export default function AccountsPage() {
   const router = useRouter();
   const { accounts, isLoading: loading, error, mutate } = useAccounts();
-  const { createAccount, updateAccount, deleteAccount } = useApi();
+  const { createAccount, updateAccount, deleteAccount, getTransactionCount } = useApi();
 
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -37,6 +37,17 @@ export default function AccountsPage() {
 
   // Delete Confirmation State
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTransactionCount, setDeleteTransactionCount] = useState<number | null>(null);
+
+  // Fetch transaction count when delete dialog opens
+  useEffect(() => {
+    if (deleteId) {
+      setDeleteTransactionCount(null);
+      getTransactionCount({ accountId: deleteId })
+        .then(setDeleteTransactionCount)
+        .catch(() => setDeleteTransactionCount(0));
+    }
+  }, [deleteId, getTransactionCount]);
 
   const handleAddAccount = async (newAccountData: Omit<Account, "id">) => {
     try {
@@ -224,8 +235,17 @@ export default function AccountsPage() {
           <DialogHeader>
             <DialogTitle>Delete Account</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this account? This action cannot
-              be undone.
+              {deleteTransactionCount === null ? (
+                "Loading..."
+              ) : deleteTransactionCount > 0 ? (
+                <>
+                  Are you sure you want to delete this account? This will also
+                  delete <strong>{deleteTransactionCount} transaction{deleteTransactionCount !== 1 ? "s" : ""}</strong>.
+                  This action cannot be undone.
+                </>
+              ) : (
+                "Are you sure you want to delete this account? This action cannot be undone."
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -235,9 +255,9 @@ export default function AccountsPage() {
             <Button
               variant="destructive"
               onClick={() => deleteId && handleDeleteAccount(deleteId)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || deleteTransactionCount === null}
             >
-              {isSubmitting ? "Deleting..." : "Delete"}
+              {isSubmitting ? "Deleting..." : deleteTransactionCount && deleteTransactionCount > 0 ? `Delete Account & ${deleteTransactionCount} Transaction${deleteTransactionCount !== 1 ? "s" : ""}` : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

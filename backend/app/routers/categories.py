@@ -6,7 +6,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.auth import get_current_user
@@ -140,18 +139,12 @@ def delete_category(
 ):
     """
     Delete a category by ID.
+    Cascade deletes all associated transactions first.
     Children will have their parent_id set to NULL.
-    Will fail if category has associated transactions.
     """
-    try:
-        deleted = crud.delete_category(db, category_id, user_id)
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Category not found",
-            )
-    except IntegrityError:
+    deleted, _transactions_deleted = crud.delete_category(db, category_id, user_id)
+    if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot delete category with associated transactions",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found",
         )

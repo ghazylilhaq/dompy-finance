@@ -50,19 +50,33 @@ def update_account(
     return account
 
 
-def delete_account(db: Session, account_id: UUID, user_id: str) -> bool:
+def delete_account(
+    db: Session, account_id: UUID, user_id: str
+) -> tuple[bool, int]:
     """
     Delete an account by ID, verifying ownership.
-    Returns True if deleted, False if not found.
-    Note: Will fail if account has associated transactions.
+    First deletes all associated transactions (cascade delete).
+
+    Returns:
+        tuple[bool, int]: (success, deleted_transaction_count)
+        - (False, 0) if account not found
+        - (True, count) if deleted successfully
     """
+    # Import here to avoid circular imports
+    from app.crud import transaction as transaction_crud
+
     account = get_account(db, account_id, user_id)
     if not account:
-        return False
+        return (False, 0)
+
+    # Cascade delete all transactions for this account
+    deleted_count = transaction_crud.delete_transactions_by_account(
+        db, account_id, user_id
+    )
 
     db.delete(account)
     db.commit()
-    return True
+    return (True, deleted_count)
 
 
 def update_balance(

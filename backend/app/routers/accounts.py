@@ -6,7 +6,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.auth import get_current_user
@@ -76,17 +75,11 @@ def delete_account(
 ):
     """
     Delete an account by ID.
-    Will fail if account has associated transactions.
+    Cascade deletes all associated transactions first.
     """
-    try:
-        deleted = crud.delete_account(db, account_id, user_id)
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Account not found",
-            )
-    except IntegrityError:
+    deleted, _transactions_deleted = crud.delete_account(db, account_id, user_id)
+    if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot delete account with associated transactions",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
         )

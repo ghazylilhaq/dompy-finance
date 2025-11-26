@@ -40,6 +40,21 @@ def transaction_to_response(tx) -> dict:
     }
 
 
+@router.get("/count")
+def count_transactions(
+    account_id: UUID | None = Query(None, description="Filter by account"),
+    category_id: UUID | None = Query(None, description="Filter by category"),
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Get count of transactions for the current user.
+    Used to show warnings before cascade deletion.
+    """
+    count = crud.count_transactions(db, user_id, account_id, category_id)
+    return {"count": count}
+
+
 @router.get("/", response_model=list[TransactionResponse])
 def list_transactions(
     search: str | None = Query(None, description="Search in description"),

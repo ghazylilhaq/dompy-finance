@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import select, or_, extract
+from sqlalchemy import select, or_, extract, func, delete
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.transaction import Transaction
@@ -227,3 +227,135 @@ def delete_transaction(db: Session, transaction_id: UUID, user_id: str) -> bool:
 
     db.commit()
     return True
+
+
+def count_transactions(
+    db: Session,
+    user_id: str,
+    account_id: UUID | None = None,
+    category_id: UUID | None = None,
+) -> int:
+    """
+    Count transactions for a user, optionally filtered by account or category.
+    Used to show warnings before cascade deletion.
+    """
+    stmt = select(func.count(Transaction.id)).where(Transaction.user_id == user_id)
+
+    if account_id:
+        stmt = stmt.where(Transaction.account_id == account_id)
+
+    if category_id:
+        stmt = stmt.where(Transaction.category_id == category_id)
+
+    return db.scalar(stmt) or 0
+
+
+def delete_transactions_by_account(
+    db: Session,
+    account_id: UUID,
+    user_id: str,
+) -> int:
+    """
+    Delete all transactions for a given account.
+    Recalculates budget spent amounts for affected expense transactions.
+    Does NOT update account balance since account is being deleted.
+
+    Returns the count of deleted transactions.
+    """
+    # First, get all transactions to collect budget info for expense transactions
+    stmt = select(Transaction).where(
+        Transaction.account_id == account_id,
+        Transaction.user_id == user_id,
+    )
+    transactions = list(db.scalars(stmt).all())
+
+    if not transactions:
+        return 0
+
+    # Collect unique (category_id, month) pairs for budget recalculation
+    affected_budgets: set[tuple[UUID, date]] = set()
+    for tx in transactions:
+        if tx.type == "expense":
+            month_date = date(tx.date.year, tx.date.month, 1)
+            affected_budgets.add((tx.category_id, month_date))
+
+    # Delete all transactions in bulk
+    delete_stmt = delete(Transaction).where(
+        Transaction.account_id == account_id,
+        Transaction.user_id == user_id,
+    )
+    db.execute(delete_stmt)
+
+    # Recalculate all affected budgets
+    for category_id, month_date in affected_budgets:
+        budget_crud.recalculate_spent(db, category_id, month_date, user_id)
+
+    return len(transactions)
+
+
+def delete_transactions_by_category(
+    db: Session,
+    category_id: UUID,
+    user_id: str,
+    category_ids: list[UUID] | None = None,
+) -> int:
+    """
+    Delete all transactions for a given category (or list of categories).
+    Reverses account balances and recalculates budget spent amounts.
+
+    Args:
+        db: Database session
+        category_id: Primary category ID to delete transactions for
+        user_id: User ID for ownership verification
+        category_ids: Optional list of category IDs (includes children).
+                      If None, only deletes for the single category_id.
+
+    Returns the count of deleted transactions.
+    """
+    # Build list of category IDs to delete
+    ids_to_delete = category_ids if category_ids else [category_id]
+
+    # Get all transactions for these categories
+    stmt = select(Transaction).where(
+        Transaction.category_id.in_(ids_to_delete),
+        Transaction.user_id == user_id,
+    )
+    transactions = list(db.scalars(stmt).all())
+
+    if not transactions:
+        return 0
+
+    # Collect data for account balance reversal and budget recalculation
+    affected_budgets: set[tuple[UUID, date]] = set()
+    account_deltas: dict[UUID, Decimal] = {}
+
+    for tx in transactions:
+        # Calculate balance reversal (undo the transaction effect)
+        delta = tx.amount if tx.type == "income" else -tx.amount
+        reversal = -delta  # Reverse the original effect
+
+        if tx.account_id not in account_deltas:
+            account_deltas[tx.account_id] = Decimal("0")
+        account_deltas[tx.account_id] += reversal
+
+        # Track affected budgets for expense transactions
+        if tx.type == "expense":
+            month_date = date(tx.date.year, tx.date.month, 1)
+            affected_budgets.add((tx.category_id, month_date))
+
+    # Delete all transactions in bulk
+    delete_stmt = delete(Transaction).where(
+        Transaction.category_id.in_(ids_to_delete),
+        Transaction.user_id == user_id,
+    )
+    db.execute(delete_stmt)
+
+    # Reverse account balances
+    for acc_id, delta in account_deltas.items():
+        account_crud.update_balance(db, acc_id, delta, user_id)
+
+    # Recalculate all affected budgets
+    for cat_id, month_date in affected_budgets:
+        budget_crud.recalculate_spent(db, cat_id, month_date, user_id)
+
+    return len(transactions)
