@@ -1,0 +1,16 @@
+# Node / Next.js
+node_modules/
+.next/
+dist/
+
+# Python / FastAPI
+__pycache__/
+*.pyc
+venv/
+
+# Environment
+.env
+
+# Editor / OS
+.vscode/
+.DS_Store
