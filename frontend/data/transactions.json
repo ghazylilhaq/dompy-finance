@@ -1,0 +1,62 @@
+[
+  {
+    "id": "tx_1",
+    "date": "2025-11-24T10:30:00Z",
+    "type": "expense",
+    "amount": 45.5,
+    "categoryId": "cat_3",
+    "accountId": "acc_2",
+    "description": "Grocery shopping at Whole Foods",
+    "tags": ["groceries", "food"]
+  },
+  {
+    "id": "tx_2",
+    "date": "2025-11-23T14:15:00Z",
+    "type": "expense",
+    "amount": 12.0,
+    "categoryId": "cat_4",
+    "accountId": "acc_1",
+    "description": "Uber ride",
+    "tags": ["transport"]
+  },
+  {
+    "id": "tx_3",
+    "date": "2025-11-20T09:00:00Z",
+    "type": "income",
+    "amount": 2500.0,
+    "categoryId": "cat_1",
+    "accountId": "acc_2",
+    "description": "Monthly Salary",
+    "tags": ["salary"]
+  },
+  {
+    "id": "tx_4",
+    "date": "2025-11-18T19:30:00Z",
+    "type": "expense",
+    "amount": 85.0,
+    "categoryId": "cat_3",
+    "accountId": "acc_3",
+    "description": "Dinner at Italian Restaurant",
+    "tags": ["dining", "date"]
+  },
+  {
+    "id": "tx_5",
+    "date": "2025-11-15T11:00:00Z",
+    "type": "expense",
+    "amount": 120.0,
+    "categoryId": "cat_7",
+    "accountId": "acc_3",
+    "description": "New Sneakers",
+    "tags": ["shopping", "clothing"]
+  },
+  {
+    "id": "tx_6",
+    "date": "2025-11-10T16:45:00Z",
+    "type": "expense",
+    "amount": 15.0,
+    "categoryId": "cat_6",
+    "accountId": "acc_4",
+    "description": "Netflix Subscription",
+    "tags": ["subscription", "entertainment"]
+  }
+]

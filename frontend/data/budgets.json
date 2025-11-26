@@ -1,0 +1,44 @@
+[
+  {
+    "id": "bud_1",
+    "categoryId": "cat_3",
+    "month": "2025-11",
+    "limit": 5000000,
+    "spent": 3500000
+  },
+  {
+    "id": "bud_2",
+    "categoryId": "cat_4",
+    "month": "2025-11",
+    "limit": 2000000,
+    "spent": 1800000
+  },
+  {
+    "id": "bud_3",
+    "categoryId": "cat_6",
+    "month": "2025-11",
+    "limit": 1500000,
+    "spent": 450000
+  },
+  {
+    "id": "bud_4",
+    "categoryId": "cat_7",
+    "month": "2025-11",
+    "limit": 3000000,
+    "spent": 3200000
+  },
+  {
+    "id": "bud_5",
+    "categoryId": "cat_9",
+    "month": "2025-11",
+    "limit": 2000000,
+    "spent": 1500000
+  },
+  {
+    "id": "bud_6",
+    "categoryId": "cat_12",
+    "month": "2025-11",
+    "limit": 1000000,
+    "spent": 800000
+  }
+]

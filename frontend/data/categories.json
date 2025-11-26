@@ -1,0 +1,155 @@
+[
+  {
+    "id": "cat_1",
+    "name": "Salary",
+    "type": "income",
+    "color": "#4ade80",
+    "icon": "Wallet"
+  },
+  {
+    "id": "cat_2",
+    "name": "Freelance",
+    "type": "income",
+    "color": "#60a5fa",
+    "icon": "Briefcase",
+    "parentId": "cat_1"
+  },
+  {
+    "id": "cat_3",
+    "name": "Food & Dining",
+    "type": "expense",
+    "color": "#f87171",
+    "icon": "Utensils"
+  },
+  {
+    "id": "cat_4",
+    "name": "Transportation",
+    "type": "expense",
+    "color": "#fbbf24",
+    "icon": "Car"
+  },
+  {
+    "id": "cat_5",
+    "name": "Housing",
+    "type": "expense",
+    "color": "#a78bfa",
+    "icon": "Home"
+  },
+  {
+    "id": "cat_6",
+    "name": "Entertainment",
+    "type": "expense",
+    "color": "#f472b6",
+    "icon": "Film"
+  },
+  {
+    "id": "cat_7",
+    "name": "Shopping",
+    "type": "expense",
+    "color": "#2dd4bf",
+    "icon": "ShoppingBag"
+  },
+  {
+    "id": "cat_8",
+    "name": "Health",
+    "type": "expense",
+    "color": "#fb923c",
+    "icon": "HeartPulse"
+  },
+  {
+    "id": "cat_9",
+    "name": "Groceries",
+    "type": "expense",
+    "color": "#f87171",
+    "icon": "ShoppingCart",
+    "parentId": "cat_3"
+  },
+  {
+    "id": "cat_10",
+    "name": "Restaurants",
+    "type": "expense",
+    "color": "#ef4444",
+    "icon": "Utensils",
+    "parentId": "cat_3"
+  },
+  {
+    "id": "cat_11",
+    "name": "Coffee",
+    "type": "expense",
+    "color": "#b91c1c",
+    "icon": "Coffee",
+    "parentId": "cat_3"
+  },
+  {
+    "id": "cat_12",
+    "name": "Fuel",
+    "type": "expense",
+    "color": "#fbbf24",
+    "icon": "Fuel",
+    "parentId": "cat_4"
+  },
+  {
+    "id": "cat_13",
+    "name": "Public Transport",
+    "type": "expense",
+    "color": "#d97706",
+    "icon": "Bus",
+    "parentId": "cat_4"
+  },
+  {
+    "id": "cat_14",
+    "name": "Rent",
+    "type": "expense",
+    "color": "#a78bfa",
+    "icon": "Home",
+    "parentId": "cat_5"
+  },
+  {
+    "id": "cat_15",
+    "name": "Utilities",
+    "type": "expense",
+    "color": "#7c3aed",
+    "icon": "Zap",
+    "parentId": "cat_5"
+  },
+  {
+    "id": "cat_16",
+    "name": "Movies",
+    "type": "expense",
+    "color": "#f472b6",
+    "icon": "Film",
+    "parentId": "cat_6"
+  },
+  {
+    "id": "cat_17",
+    "name": "Games",
+    "type": "expense",
+    "color": "#db2777",
+    "icon": "Gamepad2",
+    "parentId": "cat_6"
+  },
+  {
+    "id": "cat_18",
+    "name": "Online Shopping",
+    "type": "expense",
+    "color": "#2dd4bf",
+    "icon": "ShoppingBag",
+    "parentId": "cat_7"
+  },
+  {
+    "id": "cat_19",
+    "name": "Doctor",
+    "type": "expense",
+    "color": "#fb923c",
+    "icon": "Stethoscope",
+    "parentId": "cat_8"
+  },
+  {
+    "id": "cat_20",
+    "name": "Pharmacy",
+    "type": "expense",
+    "color": "#ea580c",
+    "icon": "HeartPulse",
+    "parentId": "cat_8"
+  }
+]
