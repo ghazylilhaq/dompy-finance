@@ -123,7 +123,7 @@ def create_transaction(
     db.flush()
 
     # Update account balance
-    delta = float(data.amount) if data.type == "income" else -float(data.amount)
+    delta = data.amount if data.type == "income" else -data.amount
     account_crud.update_balance(db, data.account_id, delta, user_id)
 
     # Update budget spent if expense
@@ -172,14 +172,14 @@ def update_transaction(
 
     # Recalculate account balances
     # Reverse old transaction effect
-    old_delta = float(old_amount) if old_type == "income" else -float(old_amount)
+    old_delta = old_amount if old_type == "income" else -old_amount
     account_crud.update_balance(db, old_account_id, -old_delta, user_id)
 
     # Apply new transaction effect
     new_delta = (
-        float(transaction.amount)
+        transaction.amount
         if transaction.type == "income"
-        else -float(transaction.amount)
+        else -transaction.amount
     )
     account_crud.update_balance(db, transaction.account_id, new_delta, user_id)
 
@@ -217,7 +217,7 @@ def delete_transaction(db: Session, transaction_id: UUID, user_id: str) -> bool:
     db.flush()
 
     # Reverse account balance change
-    delta = float(tx_amount) if tx_type == "income" else -float(tx_amount)
+    delta = tx_amount if tx_type == "income" else -tx_amount
     account_crud.update_balance(db, tx_account_id, -delta, user_id)
 
     # Recalculate budget if expense

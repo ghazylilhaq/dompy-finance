@@ -3,6 +3,7 @@ CRUD operations for Account entity.
 """
 
 from uuid import UUID
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -65,7 +66,7 @@ def delete_account(db: Session, account_id: UUID, user_id: str) -> bool:
 
 
 def update_balance(
-    db: Session, account_id: UUID, amount_delta: float, user_id: str
+    db: Session, account_id: UUID, amount_delta: Decimal, user_id: str
 ) -> Account | None:
     """
     Update account balance by a delta amount.
