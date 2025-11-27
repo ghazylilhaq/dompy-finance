@@ -164,8 +164,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
 
   // Build mapping items from maps
   const buildMappingItems = (
-    mappings: Map<string, string>,
-    existingMappings: Record<string, string>
+    mappings: Map<string, string>
   ): MappingItem[] => {
     const items: MappingItem[] = [];
     mappings.forEach((id, csv) => {
@@ -196,14 +195,8 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     setError(null);
 
     try {
-      const catMappingItems = buildMappingItems(
-        categoryMappings,
-        parseResult.existingCategoryMappings
-      );
-      const accMappingItems = buildMappingItems(
-        accountMappings,
-        parseResult.existingAccountMappings
-      );
+      const catMappingItems = buildMappingItems(categoryMappings);
+      const accMappingItems = buildMappingItems(accountMappings);
 
       const preview = await previewImport(
         parseResult.profileId,
@@ -326,14 +319,8 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     const doRefresh = async () => {
       setIsRefreshingPreview(true);
       try {
-        const catMappingItems = buildMappingItems(
-          categoryMappings,
-          parseResult.existingCategoryMappings
-        );
-        const accMappingItems = buildMappingItems(
-          accountMappings,
-          parseResult.existingAccountMappings
-        );
+        const catMappingItems = buildMappingItems(categoryMappings);
+        const accMappingItems = buildMappingItems(accountMappings);
 
         const preview = await previewImport(
           parseResult.profileId,

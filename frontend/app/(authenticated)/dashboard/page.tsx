@@ -86,15 +86,12 @@ export default function Dashboard() {
     txData: Omit<Transaction, "id"> | Transaction
   ) => {
     try {
-      setIsSubmitting(true);
       await createTransaction(txData as Omit<Transaction, "id">);
       await fetchDashboardData(); // Refresh all data
       setIsDialogOpen(false);
     } catch (err) {
       console.error("Save transaction error:", err);
       alert(err instanceof Error ? err.message : "Failed to save transaction");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
