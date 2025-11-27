@@ -5,6 +5,7 @@ This guide walks you through deploying NeoBudget to Dokploy using nixpacks.
 ## Architecture Overview
 
 The application consists of three services:
+
 1. **PostgreSQL Database** - Managed database service
 2. **Backend API** - FastAPI application (Python)
 3. **Frontend** - Next.js application (React/TypeScript)
@@ -22,23 +23,23 @@ The application consists of three services:
 
 ### Backend Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@db-host:5432/neobudget` |
-| `CORS_ORIGINS` | Comma-separated allowed origins | `https://your-app.com,https://www.your-app.com` |
-| `CLERK_SECRET_KEY` | Clerk secret key for JWT verification | `sk_live_xxxxx` |
-| `CLERK_JWKS_URL` | Clerk JWKS endpoint URL | `https://your-app.clerk.accounts.dev/.well-known/jwks.json` |
-| `DEBUG` | Enable debug mode (optional) | `false` |
-| `PORT` | Server port (optional, default: 8000) | `8000` |
-| `WORKERS` | Number of uvicorn workers (optional, default: 4) | `4` |
+| Variable           | Description                                      | Example                                                     |
+| ------------------ | ------------------------------------------------ | ----------------------------------------------------------- |
+| `DATABASE_URL`     | PostgreSQL connection string                     | `postgresql://user:pass@db-host:5432/neobudget`             |
+| `CORS_ORIGINS`     | Comma-separated allowed origins                  | `https://your-app.com,https://www.your-app.com`             |
+| `CLERK_SECRET_KEY` | Clerk secret key for JWT verification            | `sk_live_xxxxx`                                             |
+| `CLERK_JWKS_URL`   | Clerk JWKS endpoint URL                          | `https://your-app.clerk.accounts.dev/.well-known/jwks.json` |
+| `DEBUG`            | Enable debug mode (optional)                     | `false`                                                     |
+| `PORT`             | Server port (optional, default: 8000)            | `8000`                                                      |
+| `WORKERS`          | Number of uvicorn workers (optional, default: 4) | `4`                                                         |
 
 ### Frontend Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `https://api.your-app.com` |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key | `pk_live_xxxxx` |
-| `CLERK_SECRET_KEY` | Clerk secret key | `sk_live_xxxxx` |
+| Variable                            | Description           | Example                    |
+| ----------------------------------- | --------------------- | -------------------------- |
+| `NEXT_PUBLIC_API_URL`               | Backend API URL       | `https://api.your-app.com` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key | `pk_live_xxxxx`            |
+| `CLERK_SECRET_KEY`                  | Clerk secret key      | `sk_live_xxxxx`            |
 
 ## Step-by-Step Deployment
 
@@ -75,6 +76,7 @@ The application consists of three services:
 6. **Copy the connection URL** - you'll need this for the backend
 
 **Connection URL Format:**
+
 ```
 postgresql://username:password@neobudget-db:5432/neobudget
 ```
@@ -94,9 +96,9 @@ postgresql://username:password@neobudget-db:5432/neobudget
    - **Name**: `neobudget-backend`
    - **Build Path**: `backend/`
    - **Port**: `8000`
-   - **Start Command**: `./start.sh` (nixpacks will detect this)
-   
+   - **Start Command**: Leave empty (nixpacks will auto-detect `start.sh`)
 5. **Add Environment Variables** (click "Environment"):
+
    ```
    DATABASE_URL=postgresql://username:password@neobudget-db:5432/neobudget
    CORS_ORIGINS=https://your-frontend-domain.com
@@ -104,10 +106,11 @@ postgresql://username:password@neobudget-db:5432/neobudget
    CLERK_JWKS_URL=https://your-app.clerk.accounts.dev/.well-known/jwks.json
    DEBUG=false
    ```
-   
+
    > **Important**: Replace placeholders with actual values!
 
 6. **Configure Health Check** (optional but recommended):
+
    - Path: `/health`
    - Port: `8000`
 
@@ -129,14 +132,15 @@ postgresql://username:password@neobudget-db:5432/neobudget
    - **Name**: `neobudget-frontend`
    - **Build Path**: `frontend/`
    - **Port**: `3000`
-   
+   - **Start Command**: Leave empty (nixpacks will auto-detect)
 5. **Add Environment Variables**:
+
    ```
    NEXT_PUBLIC_API_URL=https://your-backend-domain.com
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx
    CLERK_SECRET_KEY=sk_live_xxxxx
    ```
-   
+
    > **Important**: Use the backend URL from Step 4!
 
 6. Click **"Deploy"**
@@ -178,6 +182,7 @@ curl https://your-backend-url.com/health
 ### 2. Test API Documentation
 
 Visit: `https://your-backend-url.com/docs`
+
 - Should show interactive API documentation
 - Authentication required for protected endpoints
 
@@ -208,6 +213,7 @@ The database migrations run automatically via `start.sh`. To verify:
 **Symptom**: Backend service fails to start
 
 **Solutions**:
+
 1. Check logs in Dokploy dashboard
 2. Verify `DATABASE_URL` is correct
 3. Ensure database service is running
@@ -226,6 +232,7 @@ The database migrations run automatically via `start.sh`. To verify:
 **Symptom**: Frontend shows API errors
 
 **Solutions**:
+
 1. Verify `NEXT_PUBLIC_API_URL` points to backend
 2. Check CORS settings in backend
 3. Ensure backend is deployed and healthy
@@ -241,6 +248,7 @@ curl https://your-backend-url.com/health
 **Symptom**: Can't sign in or "Invalid token"
 
 **Solutions**:
+
 1. Verify Clerk keys are correct (publishable and secret)
 2. Ensure using production keys for production
 3. Check that domain is added in Clerk dashboard
@@ -252,6 +260,7 @@ curl https://your-backend-url.com/health
 **Symptom**: "could not connect to server"
 
 **Solutions**:
+
 1. Verify database service is running
 2. Check `DATABASE_URL` format:
    ```
@@ -265,6 +274,7 @@ curl https://your-backend-url.com/health
 **Symptom**: Database tables don't exist
 
 **Solutions**:
+
 1. Check backend logs for migration errors
 2. Manually run migrations:
    ```bash
@@ -296,6 +306,7 @@ Configure Dokploy to auto-deploy on Git push:
 Migrations run automatically on backend startup. New migrations will apply on deploy.
 
 To create new migrations:
+
 ```bash
 # Local development
 cd backend
@@ -308,6 +319,7 @@ alembic revision --autogenerate -m "description"
 ### Backend Optimization
 
 1. **Workers**: Adjust `WORKERS` environment variable based on your server:
+
    - 2 CPU cores → 2-4 workers
    - 4 CPU cores → 4-8 workers
 
@@ -342,6 +354,7 @@ alembic revision --autogenerate -m "description"
 ### Logs
 
 Access logs in Dokploy dashboard:
+
 - **Backend**: API requests, errors, migrations
 - **Frontend**: Build errors, runtime warnings
 - **Database**: Connection issues, query errors
@@ -355,6 +368,7 @@ Access logs in Dokploy dashboard:
 ## Support
 
 If you encounter issues:
+
 1. Check logs in Dokploy dashboard
 2. Review this troubleshooting guide
 3. Verify all environment variables
@@ -367,4 +381,3 @@ If you encounter issues:
 - [FastAPI Deployment](https://fastapi.tiangolo.com/deployment/)
 - [Next.js Deployment](https://nextjs.org/docs/deployment)
 - [Clerk Documentation](https://clerk.com/docs)
-

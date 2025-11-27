@@ -20,7 +20,7 @@ export function CompletionStep({ onFinish }: CompletionStepProps) {
       </CardHeader>
       <CardContent className="text-center space-y-4 pt-6">
         <p className="text-muted-foreground">
-          We've created your accounts and categories. You can now start tracking your expenses and income.
+          We&apos;ve created your accounts and categories. You can now start tracking your expenses and income.
         </p>
       </CardContent>
       <CardFooter className="flex justify-center pt-6">

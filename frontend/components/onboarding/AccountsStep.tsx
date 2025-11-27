@@ -50,7 +50,7 @@ export function AccountsStep({ data, updateData, onNext, onBack }: AccountsStepP
     updateData({ accounts: newAccounts });
   };
 
-  const updateAccountField = (index: number, field: string, value: any) => {
+  const updateAccountField = (index: number, field: string, value: string | number) => {
     const newAccounts = [...data.accounts];
     newAccounts[index] = { ...newAccounts[index], [field]: value };
     updateData({ accounts: newAccounts });

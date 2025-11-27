@@ -15,7 +15,7 @@ export function IntroStep({ onNext }: IntroStepProps) {
         </div>
         <CardTitle className="text-3xl font-bold">Welcome to NeoBudget</CardTitle>
         <CardDescription className="text-lg mt-2">
-          Let's set up your financial workspace in just a few steps.
+          Let&apos;s set up your financial workspace in just a few steps.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">
@@ -35,7 +35,7 @@ export function IntroStep({ onNext }: IntroStepProps) {
           <div className="p-4 bg-muted/50 rounded-lg">
             <h3 className="font-semibold mb-1">3. Start Tracking</h3>
             <p className="text-sm text-muted-foreground">
-              We'll prepare everything for you.
+              We&apos;ll prepare everything for you.
             </p>
           </div>
         </div>
