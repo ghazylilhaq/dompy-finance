@@ -106,7 +106,8 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
-interface ChartTooltipContentProps extends React.ComponentProps<typeof RechartsPrimitive.Tooltip> {
+interface ChartTooltipContentProps {
+  active?: boolean;
   payload?: Array<{
     dataKey?: string;
     value?: number | string;
@@ -114,8 +115,8 @@ interface ChartTooltipContentProps extends React.ComponentProps<typeof RechartsP
     color?: string;
     payload?: Record<string, unknown>;
   }>;
-  active?: boolean;
   label?: string;
+  className?: string;
   indicator?: "dot" | "line" | "dashed";
   hideLabel?: boolean;
   hideIndicator?: boolean;

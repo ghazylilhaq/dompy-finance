@@ -39,11 +39,7 @@ interface ImportWizardProps {
 }
 
 export function ImportWizard({ onComplete }: ImportWizardProps) {
-  const {
-    parseImportFile,
-    previewImport,
-    confirmImport,
-  } = useApi();
+  const { parseImportFile, previewImport, confirmImport } = useApi();
   const { categories, mutate: mutateCategories } = useCategories();
   const { accounts, mutate: mutateAccounts } = useAccounts();
 
@@ -163,9 +159,7 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
   };
 
   // Build mapping items from maps
-  const buildMappingItems = (
-    mappings: Map<string, string>
-  ): MappingItem[] => {
+  const buildMappingItems = (mappings: Map<string, string>): MappingItem[] => {
     const items: MappingItem[] = [];
     mappings.forEach((id, csv) => {
       // Include all mappings for preview, only new ones for confirm
