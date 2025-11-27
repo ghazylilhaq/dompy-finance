@@ -22,6 +22,7 @@ interface TransactionTableProps {
   categories: Category[];
   accounts: Account[];
   onEdit?: (transaction: Transaction) => void;
+  compact?: boolean;
 }
 
 export function TransactionTable({
@@ -29,6 +30,7 @@ export function TransactionTable({
   categories,
   accounts,
   onEdit,
+  compact = false,
 }: TransactionTableProps) {
   const router = useRouter();
   const getCategory = (id: string) => categories.find((c) => c.id === id);
@@ -61,12 +63,14 @@ export function TransactionTable({
             <TableHead className="text-foreground font-bold">
               Category
             </TableHead>
-            <TableHead className="text-foreground font-bold">Account</TableHead>
+            {!compact && (
+              <TableHead className="text-foreground font-bold">Account</TableHead>
+            )}
             <TableHead className="text-right text-foreground font-bold w-[150px]">
               Amount
             </TableHead>
-            {/* Added column for Actions */}
-            <TableHead className="w-[100px]"></TableHead>
+            {/* Actions Column */}
+            <TableHead className={cn("w-[100px]", compact ? "text-right" : "")}></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -95,7 +99,7 @@ export function TransactionTable({
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell>{account?.name}</TableCell>
+                {!compact && <TableCell>{account?.name}</TableCell>}
                 <TableCell
                   className={cn(
                     "text-right font-bold",
@@ -106,31 +110,49 @@ export function TransactionTable({
                   {formatIDR(Math.abs(transaction.amount))}
                 </TableCell>
 
-                {/* Actions Cell - Mimicking Drawer */}
-                <TableCell className="p-0 relative">
-                  <div className="absolute inset-0 bg-linear-to-l from-white via-white to-transparent flex items-center justify-end gap-1 pr-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-main/20"
-                      onClick={() =>
-                        router.push(`/transactions/${transaction.id}`)
-                      }
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-main/20"
-                      onClick={() => onEdit?.(transaction)}
-                      title="Edit Transaction"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+                {/* Actions Cell */}
+                {compact ? (
+                  <TableCell className="text-right p-2">
+                     <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-main/20"
+                          onClick={() =>
+                            router.push(`/transactions/${transaction.id}`)
+                          }
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                     </div>
+                  </TableCell>
+                ) : (
+                  <TableCell className="p-0 relative">
+                    <div className="absolute inset-0 bg-linear-to-l from-white via-white to-transparent flex items-center justify-end gap-1 pr-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-main/20"
+                        onClick={() =>
+                          router.push(`/transactions/${transaction.id}`)
+                        }
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-main/20"
+                        onClick={() => onEdit?.(transaction)}
+                        title="Edit Transaction"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}

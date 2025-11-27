@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { formatIDR } from "@/lib/formatCurrency";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ActivityChart } from "@/components/dashboard/ActivityChart";
 
 import { Transaction, Category, Account } from "@/types";
 import { useApi, DashboardStats } from "@/lib/auth-api";
@@ -187,15 +188,19 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-7">
-        {/* Charts Placeholder */}
+        {/* Charts Section */}
         <div className="col-span-4 rounded-base border-2 border-border bg-secondary-background p-6 shadow-shadow">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-heading font-bold">Monthly Activity</h3>
             <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </div>
-          <div className="h-[300px] flex items-center justify-center bg-muted border-2 border-dashed border-border rounded-base">
-            <p className="text-muted-foreground font-base">Chart Placeholder</p>
-          </div>
+          {loading || !stats ? (
+            <div className="h-[300px] flex items-center justify-center">
+              <Skeleton className="h-full w-full rounded-base" />
+            </div>
+          ) : (
+            <ActivityChart data={stats.chartData} />
+          )}
         </div>
 
         {/* Recent Transactions */}
@@ -222,6 +227,7 @@ export default function Dashboard() {
               transactions={recentTransactions}
               categories={categories}
               accounts={accounts}
+              compact={true}
             />
           )}
         </div>

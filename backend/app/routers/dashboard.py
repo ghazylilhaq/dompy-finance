@@ -2,8 +2,9 @@
 Dashboard API routes.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
+import calendar
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func, extract
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import get_current_user
-from app.schemas.dashboard import DashboardStats
+from app.schemas.dashboard import DashboardStats, MonthlyActivity
 from app.schemas.transaction import TransactionResponse
 from app.models.account import Account
 from app.models.transaction import Transaction
@@ -30,6 +31,7 @@ def get_stats(
     - Total balance across all accounts
     - Monthly income (current month)
     - Monthly expenses (current month)
+    - Chart data (last 6 months)
     """
     # Total balance for user's accounts
     balance_stmt = select(func.coalesce(func.sum(Account.balance), 0)).where(
@@ -62,10 +64,76 @@ def get_stats(
     )
     monthly_expense = db.scalar(expense_stmt)
 
+    # --- Chart Data (Last 6 Months) ---
+    
+    # Calculate start date: 1st day of 5 months ago
+    # (current month is included, so we go back 5 months to get total 6)
+    start_date = now.replace(day=1)
+    for _ in range(5):
+        start_date = (start_date - timedelta(days=1)).replace(day=1)
+    
+    # Query grouped by year/month and type
+    chart_stmt = (
+        select(
+            extract('year', Transaction.date).label('year'),
+            extract('month', Transaction.date).label('month'),
+            Transaction.type,
+            func.sum(Transaction.amount).label('total')
+        )
+        .where(
+            Transaction.user_id == user_id,
+            Transaction.date >= start_date,
+            Transaction.hide_from_summary == False
+        )
+        .group_by(
+            extract('year', Transaction.date),
+            extract('month', Transaction.date),
+            Transaction.type
+        )
+    )
+    results = db.execute(chart_stmt).all()
+
+    # Map results: (year, month) -> {income, expense}
+    data_map = {}
+    for r in results:
+        key = (int(r.year), int(r.month))
+        if key not in data_map:
+            data_map[key] = {"income": Decimal(0), "expense": Decimal(0)}
+        
+        if r.type == "income":
+            data_map[key]["income"] = Decimal(str(r.total))
+        elif r.type == "expense":
+            data_map[key]["expense"] = Decimal(str(r.total))
+
+    # Build list ensuring all 6 months are present
+    chart_data = []
+    curr = start_date
+    # Loop until we pass current month
+    # We compare (year, month) to ensure we stop after current month
+    target = (now.year, now.month)
+    
+    while (curr.year, curr.month) <= target:
+        key = (curr.year, curr.month)
+        stats = data_map.get(key, {"income": Decimal(0), "expense": Decimal(0)})
+        
+        chart_data.append(
+            MonthlyActivity(
+                month=curr.strftime("%b"),
+                income=stats["income"],
+                expense=stats["expense"]
+            )
+        )
+        
+        # Move to next month
+        # Adding 32 days guarantees we are in the next month, then set to day 1
+        next_month = (curr + timedelta(days=32)).replace(day=1)
+        curr = next_month
+
     return DashboardStats(
         total_balance=Decimal(str(total_balance)),
         monthly_income=Decimal(str(monthly_income)),
         monthly_expense=Decimal(str(monthly_expense)),
+        chart_data=chart_data
     )
 
 

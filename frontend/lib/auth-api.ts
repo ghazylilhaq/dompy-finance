@@ -101,10 +101,17 @@ function createApiRequest(getToken: TokenGetter) {
 // Hook: useApi
 // =============================================================================
 
+export interface MonthlyActivity {
+  month: string;
+  income: number;
+  expense: number;
+}
+
 export interface DashboardStats {
   totalBalance: number;
   monthlyIncome: number;
   monthlyExpense: number;
+  chartData: MonthlyActivity[];
 }
 
 interface BudgetApiResponse {
