@@ -14,6 +14,6 @@ httpx>=0.25.0
 openpyxl>=3.1.2
 python-multipart>=0.0.9
 
-# PostgreSQL driver - only needed for production
-# psycopg2-binary==2.9.10
+# PostgreSQL driver - needed for production
+psycopg2-binary==2.9.10
 
