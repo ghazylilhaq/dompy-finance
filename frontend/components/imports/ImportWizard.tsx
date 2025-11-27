@@ -29,7 +29,6 @@ import {
   ImportResult,
   Category,
   Account,
-  ParsedRow,
   PreviewResult,
 } from "@/types";
 
@@ -44,8 +43,6 @@ export function ImportWizard({ onComplete }: ImportWizardProps) {
     parseImportFile,
     previewImport,
     confirmImport,
-    createCategory,
-    createAccount,
   } = useApi();
   const { categories, mutate: mutateCategories } = useCategories();
   const { accounts, mutate: mutateAccounts } = useAccounts();

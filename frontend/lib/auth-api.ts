@@ -65,39 +65,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 // =============================================================================
-// API Request Function Factory
-// =============================================================================
-
-type TokenGetter = () => Promise<string | null>;
-
-function createApiRequest(getToken: TokenGetter) {
-  return async function apiRequest<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    const token = await getToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...headers,
-        ...options.headers,
-      },
-    });
-    return handleResponse<T>(response);
-  };
-}
-
-// =============================================================================
 // Hook: useApi
 // =============================================================================
 

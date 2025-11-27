@@ -42,7 +42,6 @@ export default function Dashboard() {
   } = useApi();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -77,13 +76,10 @@ export default function Dashboard() {
 
     setLoading(true);
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isLoaded,
     isSignedIn,
-    getDashboardStats,
-    getRecentTransactions,
-    getCategories,
-    getAccounts,
   ]);
 
   const handleAddTransaction = async (

@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { completeOnboarding, OnboardingPayload } from "@/lib/api";
 import { IntroStep } from "./IntroStep";
 import { AccountsStep } from "./AccountsStep";
