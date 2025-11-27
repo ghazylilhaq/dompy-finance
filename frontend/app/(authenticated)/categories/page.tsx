@@ -39,7 +39,12 @@ const getIcon = (
 export default function CategoriesPage() {
   const router = useRouter();
   const { categories, isLoading: loading, error, mutate } = useCategories();
-  const { createCategory, updateCategory, deleteCategory, getTransactionCount } = useApi();
+  const {
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    getTransactionCount,
+  } = useApi();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>(
@@ -49,7 +54,9 @@ export default function CategoriesPage() {
 
   // Delete Confirmation State
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteTransactionCount, setDeleteTransactionCount] = useState<number | null>(null);
+  const [deleteTransactionCount, setDeleteTransactionCount] = useState<
+    number | null
+  >(null);
 
   // Fetch transaction count when delete dialog opens
   useEffect(() => {
@@ -329,7 +336,9 @@ export default function CategoriesPage() {
         onSubmit={editingCategory ? handleEditCategory : handleAddCategory}
         existingCategories={userCategories}
         initialData={editingCategory}
-        onDelete={editingCategory ? () => confirmDelete(editingCategory.id) : undefined}
+        onDelete={
+          editingCategory ? () => confirmDelete(editingCategory.id) : undefined
+        }
       />
 
       <Dialog
@@ -345,8 +354,12 @@ export default function CategoriesPage() {
               ) : deleteTransactionCount > 0 ? (
                 <>
                   Are you sure you want to delete this category? This will also
-                  delete <strong>{deleteTransactionCount} transaction{deleteTransactionCount !== 1 ? "s" : ""}</strong>.
-                  This action cannot be undone.
+                  delete{" "}
+                  <strong>
+                    {deleteTransactionCount} transaction
+                    {deleteTransactionCount !== 1 ? "s" : ""}
+                  </strong>
+                  . This action cannot be undone.
                 </>
               ) : (
                 "Are you sure you want to delete this category? This action cannot be undone."
@@ -362,7 +375,13 @@ export default function CategoriesPage() {
               onClick={() => deleteId && handleDeleteCategory(deleteId)}
               disabled={isSubmitting || deleteTransactionCount === null}
             >
-              {isSubmitting ? "Deleting..." : deleteTransactionCount && deleteTransactionCount > 0 ? `Delete Category & ${deleteTransactionCount} Transaction${deleteTransactionCount !== 1 ? "s" : ""}` : "Delete"}
+              {isSubmitting
+                ? "Deleting..."
+                : deleteTransactionCount && deleteTransactionCount > 0
+                ? `Delete Category & ${deleteTransactionCount} Transaction${
+                    deleteTransactionCount !== 1 ? "s" : ""
+                  }`
+                : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

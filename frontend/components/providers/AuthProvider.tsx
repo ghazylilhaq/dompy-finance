@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { setAuthTokenGetter } from "@/lib/api";
 
@@ -9,9 +9,13 @@ import { setAuthTokenGetter } from "@/lib/api";
  * Must be used within ClerkProvider.
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    // Wait for Clerk to be loaded
+    if (!isLoaded) return;
+
     // Set the token getter for the API client
     setAuthTokenGetter(async () => {
       try {
@@ -21,15 +25,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     });
-  }, [getToken]);
+
+    // Mark as ready only after setting the getter
+    setIsReady(true);
+  }, [getToken, isLoaded]);
+
+  if (!isReady) {
+    return null; // or a loading spinner
+  }
 
   return <>{children}</>;
 }
-
-
-
-
-
-
-
-

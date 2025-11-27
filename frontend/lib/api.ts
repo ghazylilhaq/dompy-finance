@@ -401,3 +401,29 @@ export interface Tag {
 export async function getTags(): Promise<Tag[]> {
   return apiRequest<Tag[]>("/api/tags");
 }
+
+// =============================================================================
+// Onboarding API
+// =============================================================================
+
+export interface OnboardingStatus {
+  hasCompletedOnboarding: boolean;
+}
+
+export interface OnboardingPayload {
+  accounts: Omit<Account, "id" | "createdAt" | "updatedAt">[];
+  categories: Omit<Category, "id" | "createdAt" | "updatedAt" | "isSystem">[];
+}
+
+export async function getOnboardingStatus(): Promise<OnboardingStatus> {
+  return apiRequest<OnboardingStatus>("/api/onboarding/status");
+}
+
+export async function completeOnboarding(
+  data: OnboardingPayload
+): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>("/api/onboarding/complete", {
+    method: "POST",
+    body: JSON.stringify(camelToSnake(data)),
+  });
+}

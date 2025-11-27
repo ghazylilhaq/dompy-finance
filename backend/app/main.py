@@ -20,6 +20,7 @@ from app.routers import (
     tags,
     dashboard,
     imports,
+    onboarding,
 )
 
 
@@ -76,6 +77,11 @@ app.include_router(
     imports.router,
     prefix="/api/imports",
     tags=["Imports"],
+)
+app.include_router(
+    onboarding.router,
+    prefix="/api/onboarding",
+    tags=["Onboarding"],
 )
 
 
