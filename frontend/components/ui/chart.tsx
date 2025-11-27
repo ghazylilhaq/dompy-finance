@@ -168,10 +168,10 @@ function ChartTooltipContent({
         ? config[label as keyof typeof config]?.label || label
         : itemConfig?.label;
 
-    if (labelFormatter) {
+    if (labelFormatter && value) {
       return (
         <div className={cn("font-heading", labelClassName)}>
-          {labelFormatter(value, payload)}
+          {labelFormatter(String(value), payload || [])}
         </div>
       );
     }
