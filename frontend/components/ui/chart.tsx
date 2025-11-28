@@ -292,6 +292,7 @@ function ChartLegendContent({
       value?: string;
       type?: string;
       id?: string;
+      dataKey?: string;
       color?: string;
     }>;
     hideIcon?: boolean;
