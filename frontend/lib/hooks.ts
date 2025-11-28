@@ -4,8 +4,7 @@ import useSWR from "swr";
 import { useAuth } from "@clerk/nextjs";
 import { Account, Category, Budget, Transaction } from "@/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Re-export types for convenience
 export type { Account, Category, Budget, Transaction };
@@ -145,9 +144,12 @@ export function useBudgets(month?: string) {
   const fetcher = useAuthFetcher<BudgetApiResponse[]>();
 
   // Include month in the key if it exists so it refetches when month changes
-  const key = isLoaded && isSignedIn 
-    ? (month ? `/api/budgets?month=${month}` : "/api/budgets")
-    : null;
+  const key =
+    isLoaded && isSignedIn
+      ? month
+        ? `/api/budgets?month=${month}`
+        : "/api/budgets"
+      : null;
 
   const { data, error, isLoading, mutate } = useSWR<BudgetApiResponse[]>(
     key,
@@ -184,13 +186,19 @@ export function useTransactions(filters: TransactionFilters = {}) {
   if (filters.limit !== undefined) params.set("limit", String(filters.limit));
 
   const queryString = params.toString();
-  const url = queryString ? `/api/transactions?${queryString}` : "/api/transactions";
+  const url = queryString
+    ? `/api/transactions?${queryString}`
+    : "/api/transactions";
 
   const key = isLoaded && isSignedIn ? url : null;
 
-  const { data, error, isLoading, mutate } = useSWR<Transaction[]>(key, fetcher, {
-    keepPreviousData: true,
-  });
+  const { data, error, isLoading, mutate } = useSWR<Transaction[]>(
+    key,
+    fetcher,
+    {
+      keepPreviousData: true,
+    }
+  );
 
   return {
     transactions: data || [],

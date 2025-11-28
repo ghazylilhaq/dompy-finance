@@ -108,5 +108,9 @@ def debug_cors():
     return {
         "cors_origins_raw": settings.CORS_ORIGINS,
         "cors_origins_list": settings.cors_origins_list,
-        "database_url": settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "sqlite",
+        "database_url": (
+            settings.DATABASE_URL.split("@")[-1]
+            if "@" in settings.DATABASE_URL
+            else "sqlite"
+        ),
     }

@@ -9,7 +9,8 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
-  const { onboardingStatus, isLoading: isCheckingStatus } = useOnboardingStatus();
+  const { onboardingStatus, isLoading: isCheckingStatus } =
+    useOnboardingStatus();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
@@ -24,8 +25,8 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
 
     // If not signed in, we shouldn't be here (middleware should handle), but just in case:
     if (!isSignedIn) {
-       // Let Clerk handle redirect or show nothing
-       return; 
+      // Let Clerk handle redirect or show nothing
+      return;
     }
 
     // Wait for onboarding status to load
@@ -42,7 +43,14 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
       // If status is undefined (error), fail safe and allow access
       setIsAuthorized(true);
     }
-  }, [router, pathname, isLoaded, isSignedIn, onboardingStatus, isCheckingStatus]);
+  }, [
+    router,
+    pathname,
+    isLoaded,
+    isSignedIn,
+    onboardingStatus,
+    isCheckingStatus,
+  ]);
 
   if (isCheckingStatus || !isLoaded) {
     return (
