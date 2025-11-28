@@ -165,9 +165,9 @@ export function useBudgets(month?: string) {
 
 // --- Transactions ---
 
-export function useTransactions(filters: TransactionFilters) {
+export function useTransactions(filters: TransactionFilters = {}) {
   const { isLoaded, isSignedIn } = useAuth();
-  const fetcher = useAuthFetcher();
+  const fetcher = useAuthFetcher<Transaction[]>();
 
   // Build URL with filters
   const params = new URLSearchParams();
