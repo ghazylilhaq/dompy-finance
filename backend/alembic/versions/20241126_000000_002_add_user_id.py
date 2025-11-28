@@ -80,8 +80,15 @@ def upgrade() -> None:
             server_default="default_user",
         ),
     )
-    # Drop old unique constraint on name only
-    op.drop_constraint("uq_tags_name", "tags", type_="unique")
+    # Drop old unique constraint on name only (PostgreSQL auto-generated name)
+    # Try common auto-generated names
+    connection = op.get_bind()
+    inspector = sa.inspect(connection)
+    constraints = inspector.get_unique_constraints("tags")
+    for constraint in constraints:
+        if "name" in constraint["column_names"] and len(constraint["column_names"]) == 1:
+            op.drop_constraint(constraint["name"], "tags", type_="unique")
+            break
     # Create new composite unique constraint
     op.create_unique_constraint("uq_tags_user_name", "tags", ["user_id", "name"])
     op.create_index("idx_tags_user_id", "tags", ["user_id"])
