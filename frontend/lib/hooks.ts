@@ -96,7 +96,7 @@ function useAuthFetcher<T = unknown>() {
 
 export function useAccounts() {
   const { isLoaded, isSignedIn } = useAuth();
-  const fetcher = useAuthFetcher();
+  const fetcher = useAuthFetcher<Account[]>();
 
   const { data, error, isLoading, mutate } = useSWR<Account[]>(
     isLoaded && isSignedIn ? "/api/accounts" : null,
@@ -118,7 +118,7 @@ export function useAccounts() {
 
 export function useCategories() {
   const { isLoaded, isSignedIn } = useAuth();
-  const fetcher = useAuthFetcher();
+  const fetcher = useAuthFetcher<Category[]>();
 
   const { data, error, isLoading, mutate } = useSWR<Category[]>(
     isLoaded && isSignedIn ? "/api/categories" : null,
@@ -140,7 +140,7 @@ export function useCategories() {
 
 export function useBudgets(month?: string) {
   const { isLoaded, isSignedIn } = useAuth();
-  const fetcher = useAuthFetcher();
+  const fetcher = useAuthFetcher<BudgetApiResponse[]>();
 
   // Include month in the key if it exists so it refetches when month changes
   const key = isLoaded && isSignedIn 
