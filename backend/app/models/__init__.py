@@ -10,6 +10,7 @@ from app.models.tag import Tag, transaction_tags
 from app.models.transaction import Transaction
 from app.models.import_profile import ImportProfile, ImportValueMapping
 from app.models.user_settings import UserSettings
+from app.models.assistant import Conversation, ConversationMessage, ActionProposal
 
 __all__ = [
     "Account",
@@ -21,4 +22,8 @@ __all__ = [
     "ImportProfile",
     "ImportValueMapping",
     "UserSettings",
+    # Assistant
+    "Conversation",
+    "ConversationMessage",
+    "ActionProposal",
 ]
