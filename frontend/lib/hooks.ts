@@ -67,10 +67,10 @@ export interface TransactionFilters {
 }
 
 // Create a fetcher that includes auth token
-function useAuthFetcher() {
+function useAuthFetcher<T = unknown>() {
   const { getToken, isSignedIn } = useAuth();
 
-  return async (url: string) => {
+  return async (url: string): Promise<T> => {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -88,7 +88,7 @@ function useAuthFetcher() {
       throw new Error(error.detail || `API Error: ${response.status}`);
     }
     const data = await response.json();
-    return snakeToCamel(data);
+    return snakeToCamel(data) as T;
   };
 }
 
