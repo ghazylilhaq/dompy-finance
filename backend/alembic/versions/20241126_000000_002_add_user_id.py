@@ -52,34 +52,38 @@ def upgrade() -> None:
     )
     op.create_index("idx_categories_user_id", "categories", ["user_id"])
 
-    # Add user_id to budgets - use batch mode with recreate for SQLite
-    with op.batch_alter_table("budgets", recreate="always") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "user_id",
-                sa.String(length=255),
-                nullable=False,
-                server_default="default_user",
-            ),
-        )
-        batch_op.drop_constraint("uq_budget_category_month", type_="unique")
-        batch_op.create_unique_constraint(
-            "uq_budget_user_category_month", ["user_id", "category_id", "month"]
-        )
+    # Add user_id to budgets - simple operations for PostgreSQL
+    op.add_column(
+        "budgets",
+        sa.Column(
+            "user_id",
+            sa.String(length=255),
+            nullable=False,
+            server_default="default_user",
+        ),
+    )
+    # Drop old unique constraint
+    op.drop_constraint("uq_budget_category_month", "budgets", type_="unique")
+    # Create new composite unique constraint
+    op.create_unique_constraint(
+        "uq_budget_user_category_month", "budgets", ["user_id", "category_id", "month"]
+    )
     op.create_index("idx_budgets_user_id", "budgets", ["user_id"])
 
-    # Add user_id to tags - use batch mode to recreate table with new schema
-    with op.batch_alter_table("tags", recreate="always") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "user_id",
-                sa.String(length=255),
-                nullable=False,
-                server_default="default_user",
-            ),
-        )
-        # Create new composite unique constraint (old one on name will be removed in recreate)
-        batch_op.create_unique_constraint("uq_tags_user_name", ["user_id", "name"])
+    # Add user_id to tags - simple column addition for PostgreSQL
+    op.add_column(
+        "tags",
+        sa.Column(
+            "user_id",
+            sa.String(length=255),
+            nullable=False,
+            server_default="default_user",
+        ),
+    )
+    # Drop old unique constraint on name only
+    op.drop_constraint("uq_tags_name", "tags", type_="unique")
+    # Create new composite unique constraint
+    op.create_unique_constraint("uq_tags_user_name", "tags", ["user_id", "name"])
     op.create_index("idx_tags_user_id", "tags", ["user_id"])
 
     # Add user_id to transactions
