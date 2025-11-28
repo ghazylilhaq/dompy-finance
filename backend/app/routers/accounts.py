@@ -15,7 +15,7 @@ from app.crud import account as crud
 router = APIRouter()
 
 
-@router.get("/", response_model=list[AccountResponse])
+@router.get("", response_model=list[AccountResponse])
 def list_accounts(
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user),
@@ -40,7 +40,7 @@ def get_account(
     return account
 
 
-@router.post("/", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
 def create_account(
     data: AccountCreate,
     db: Session = Depends(get_db),

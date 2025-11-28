@@ -33,7 +33,7 @@ def budget_to_response(budget) -> dict:
     }
 
 
-@router.get("/", response_model=list[BudgetResponse])
+@router.get("", response_model=list[BudgetResponse])
 def list_budgets(
     month: str | None = Query(
         None, pattern=r"^\d{4}-\d{2}$", description="Filter by month (YYYY-MM)"
@@ -62,7 +62,7 @@ def get_budget(
     return budget_to_response(budget)
 
 
-@router.post("/", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
 def create_budget(
     data: BudgetCreate,
     db: Session = Depends(get_db),

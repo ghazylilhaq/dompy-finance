@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { getOnboardingStatus } from "@/lib/api";
+import { useOnboardingStatus } from "@/lib/hooks";
 
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { onboardingStatus, isLoading: isCheckingStatus } = useOnboardingStatus();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
@@ -19,7 +19,6 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     // Skip check on onboarding page itself
     if (pathname.startsWith("/onboarding")) {
       setIsAuthorized(true);
-      setIsLoading(false);
       return;
     }
 
@@ -29,33 +28,23 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
        return; 
     }
 
-    async function check() {
-      try {
-        const status = await getOnboardingStatus();
-        if (!status.hasCompletedOnboarding) {
-          router.replace("/onboarding");
-        } else {
-          setIsAuthorized(true);
-        }
-      } catch (error) {
-        console.error("Failed to check onboarding status:", error);
-        // If check fails (e.g. network error), we might want to retry or show error
-        // But failing open (allowing access) defeats the purpose if the error is 403.
-        // However, blocking the user completely is also bad if backend is down.
-        // For 403 specifically, we should probably assume "not onboarded" or "auth error"
-        
-        // For now, fail safe: allow access so they can at least see the dashboard 
-        // (which might also fail if 403, but maybe dashboard has better error handling UI)
-        setIsAuthorized(true);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    check();
-  }, [router, pathname, isLoaded, isSignedIn]);
+    // Wait for onboarding status to load
+    if (isCheckingStatus) return;
 
-  if (isLoading || !isLoaded) {
+    // Check onboarding status from SWR cache
+    if (onboardingStatus) {
+      if (!onboardingStatus.hasCompletedOnboarding) {
+        router.replace("/onboarding");
+      } else {
+        setIsAuthorized(true);
+      }
+    } else {
+      // If status is undefined (error), fail safe and allow access
+      setIsAuthorized(true);
+    }
+  }, [router, pathname, isLoaded, isSignedIn, onboardingStatus, isCheckingStatus]);
+
+  if (isCheckingStatus || !isLoaded) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>

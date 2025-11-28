@@ -1,29 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getOnboardingStatus } from "@/lib/api";
+import { useOnboardingStatus } from "@/lib/hooks";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { onboardingStatus, isLoading } = useOnboardingStatus();
 
   useEffect(() => {
-    async function checkStatus() {
-      try {
-        const status = await getOnboardingStatus();
-        if (status.hasCompletedOnboarding) {
-          router.replace("/dashboard");
-        }
-      } catch (error) {
-        console.error("Failed to check onboarding status:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    // If already completed onboarding, redirect to dashboard
+    if (onboardingStatus?.hasCompletedOnboarding) {
+      router.replace("/dashboard");
     }
-    checkStatus();
-  }, [router]);
+  }, [router, onboardingStatus]);
 
   if (isLoading) {
     return (

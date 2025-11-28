@@ -199,3 +199,37 @@ export function useTransactions(filters: TransactionFilters = {}) {
     mutate,
   };
 }
+
+// =============================================================================
+// Onboarding Hooks
+// =============================================================================
+
+export interface OnboardingStatus {
+  hasCompletedOnboarding: boolean;
+}
+
+/**
+ * Hook to check onboarding status with SWR caching
+ * This prevents multiple redundant API calls when checking onboarding status
+ */
+export function useOnboardingStatus() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const fetcher = useAuthFetcher<OnboardingStatus>();
+
+  const { data, error, isLoading, mutate } = useSWR<OnboardingStatus>(
+    isLoaded && isSignedIn ? "/api/onboarding/status" : null,
+    fetcher,
+    {
+      revalidateOnFocus: false, // Don't revalidate on window focus
+      revalidateOnReconnect: false, // Don't revalidate on reconnect
+      dedupingInterval: 60000, // Cache for 1 minute
+    }
+  );
+
+  return {
+    onboardingStatus: data,
+    isLoading: !isLoaded || isLoading,
+    isError: error,
+    refetch: mutate,
+  };
+}

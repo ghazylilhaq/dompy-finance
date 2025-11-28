@@ -20,7 +20,7 @@ from app.crud import category as crud
 router = APIRouter()
 
 
-@router.get("/", response_model=list[CategoryResponse])
+@router.get("", response_model=list[CategoryResponse])
 def list_categories(
     type: str | None = Query(None, description="Filter by type (income/expense)"),
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ def get_category(
     return category
 
 
-@router.post("/", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 def create_category(
     data: CategoryCreate,
     db: Session = Depends(get_db),

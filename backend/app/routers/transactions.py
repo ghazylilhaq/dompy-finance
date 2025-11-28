@@ -60,7 +60,7 @@ def count_transactions(
     return {"count": count}
 
 
-@router.get("/", response_model=list[TransactionResponse])
+@router.get("", response_model=list[TransactionResponse])
 def list_transactions(
     search: str | None = Query(None, description="Search in description"),
     type: str | None = Query(None, description="Filter by type (income/expense)"),
