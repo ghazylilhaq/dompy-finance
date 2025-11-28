@@ -1,7 +1,7 @@
 """
-Read tools for the Dompy Assistant.
+Read-only tools for the Dompy Assistant.
 
-These tools query data and can be auto-executed without user confirmation.
+These tools fetch data without modifying it and can be auto-executed.
 """
 
 from app.tools.read.get_transactions import GetTransactionsTool
@@ -17,4 +17,5 @@ __all__ = [
     "GetAccountsTool",
     "GetCategoriesTool",
 ]
+
 

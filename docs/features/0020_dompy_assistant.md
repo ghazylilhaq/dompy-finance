@@ -14,42 +14,42 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
 
 #### 1. `conversations` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK | Unique conversation identifier |
-| `user_id` | VARCHAR | NOT NULL, FK | Clerk user ID |
-| `title` | VARCHAR(255) | | Auto-generated or user-set title |
-| `created_at` | TIMESTAMP | NOT NULL | Creation timestamp |
-| `updated_at` | TIMESTAMP | NOT NULL | Last activity timestamp |
+| Column       | Type         | Constraints  | Description                      |
+| ------------ | ------------ | ------------ | -------------------------------- |
+| `id`         | UUID         | PK           | Unique conversation identifier   |
+| `user_id`    | VARCHAR      | NOT NULL, FK | Clerk user ID                    |
+| `title`      | VARCHAR(255) |              | Auto-generated or user-set title |
+| `created_at` | TIMESTAMP    | NOT NULL     | Creation timestamp               |
+| `updated_at` | TIMESTAMP    | NOT NULL     | Last activity timestamp          |
 
 #### 2. `conversation_messages` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK | Unique message identifier |
-| `conversation_id` | UUID | NOT NULL, FK | Parent conversation |
-| `role` | VARCHAR(20) | NOT NULL | `user`, `assistant`, `system`, `tool` |
-| `content` | TEXT | | Message text content |
-| `image_url` | TEXT | | Optional image attachment URL |
-| `tool_calls` | JSONB | | Array of tool calls made (for assistant messages) |
-| `tool_call_id` | VARCHAR(100) | | Tool call ID (for tool result messages) |
-| `tool_name` | VARCHAR(100) | | Tool name (for tool result messages) |
-| `created_at` | TIMESTAMP | NOT NULL | Message timestamp |
+| Column            | Type         | Constraints  | Description                                       |
+| ----------------- | ------------ | ------------ | ------------------------------------------------- |
+| `id`              | UUID         | PK           | Unique message identifier                         |
+| `conversation_id` | UUID         | NOT NULL, FK | Parent conversation                               |
+| `role`            | VARCHAR(20)  | NOT NULL     | `user`, `assistant`, `system`, `tool`             |
+| `content`         | TEXT         |              | Message text content                              |
+| `image_url`       | TEXT         |              | Optional image attachment URL                     |
+| `tool_calls`      | JSONB        |              | Array of tool calls made (for assistant messages) |
+| `tool_call_id`    | VARCHAR(100) |              | Tool call ID (for tool result messages)           |
+| `tool_name`       | VARCHAR(100) |              | Tool name (for tool result messages)              |
+| `created_at`      | TIMESTAMP    | NOT NULL     | Message timestamp                                 |
 
 #### 3. `action_proposals` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK | Proposal identifier |
-| `conversation_id` | UUID | NOT NULL, FK | Parent conversation |
-| `message_id` | UUID | NOT NULL, FK | Message that created proposal |
-| `proposal_type` | VARCHAR(50) | NOT NULL | `transaction`, `budget`, `category`, `transfer` |
-| `status` | VARCHAR(20) | NOT NULL | `pending`, `confirmed`, `revised`, `discarded` |
-| `original_payload` | JSONB | NOT NULL | Initial payload from tool |
-| `revised_payload` | JSONB | | User-modified payload |
-| `applied_at` | TIMESTAMP | | When applied to DB |
-| `result_id` | UUID | | ID of created/updated entity |
-| `created_at` | TIMESTAMP | NOT NULL | Creation timestamp |
+| Column             | Type        | Constraints  | Description                                     |
+| ------------------ | ----------- | ------------ | ----------------------------------------------- |
+| `id`               | UUID        | PK           | Proposal identifier                             |
+| `conversation_id`  | UUID        | NOT NULL, FK | Parent conversation                             |
+| `message_id`       | UUID        | NOT NULL, FK | Message that created proposal                   |
+| `proposal_type`    | VARCHAR(50) | NOT NULL     | `transaction`, `budget`, `category`, `transfer` |
+| `status`           | VARCHAR(20) | NOT NULL     | `pending`, `confirmed`, `revised`, `discarded`  |
+| `original_payload` | JSONB       | NOT NULL     | Initial payload from tool                       |
+| `revised_payload`  | JSONB       |              | User-modified payload                           |
+| `applied_at`       | TIMESTAMP   |              | When applied to DB                              |
+| `result_id`        | UUID        |              | ID of created/updated entity                    |
+| `created_at`       | TIMESTAMP   | NOT NULL     | Creation timestamp                              |
 
 ### Migration File
 
@@ -64,6 +64,7 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
 #### Endpoints
 
 1. **`POST /api/assistant/message`**
+
    - Input: `{ conversation_id?: string, message: string, image_url?: string }`
    - Process:
      - Create/retrieve conversation
@@ -75,6 +76,7 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
      - Return: `{ message_id, content, tool_calls, proposals }`
 
 2. **`POST /api/assistant/apply`**
+
    - Input: `{ proposal_ids: string[], revisions?: Record<string, object> }`
    - Process:
      - Validate proposal ownership and status
@@ -83,13 +85,16 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
      - Return: `{ results: [{ proposal_id, success, entity_id, error? }] }`
 
 3. **`PATCH /api/assistant/proposals/{proposal_id}`**
+
    - Input: `{ revised_payload: object, status?: "revised" | "discarded" }`
    - Updates proposal revision or discards it
 
 4. **`GET /api/assistant/conversations`**
+
    - Returns list of user's conversations (paginated)
 
 5. **`GET /api/assistant/conversations/{conversation_id}`**
+
    - Returns conversation with all messages and proposals
 
 6. **`DELETE /api/assistant/conversations/{conversation_id}`**
@@ -116,7 +121,7 @@ Defines and executes tools:
 ```python
 class ToolRegistry:
     tools: dict[str, ToolDefinition]
-    
+
     def get_tool_definitions() -> list[dict]  # OpenAI function format
     def execute(name, arguments, db, user_id) -> ToolResult
     def is_read_tool(name) -> bool
@@ -161,7 +166,7 @@ class ToolDefinition:
 
 class BaseTool(ABC):
     definition: ToolDefinition
-    
+
     @abstractmethod
     def execute(self, arguments: dict, db: Session, user_id: str) -> ToolResult
 ```
@@ -171,14 +176,17 @@ class BaseTool(ABC):
 #### Read Tools (auto-execute)
 
 1. **`get_transactions`**
+
    - Input: `{ date_from?, date_to?, category_id?, account_id?, limit?, search? }`
    - Output: `{ transactions: Transaction[], total_count: int }`
 
 2. **`get_budget_overview`**
+
    - Input: `{ month: string }` (YYYY-MM)
    - Output: `{ budgets: [{ category, limit, spent, remaining, percentage }] }`
 
 3. **`get_cashflow_summary`**
+
    - Input: `{ period: "week" | "month" | "custom", date_from?, date_to? }`
    - Output: `{ income, expense, net, by_category: [{ category, amount }] }`
 
@@ -189,23 +197,28 @@ class BaseTool(ABC):
 #### Write Tools (proposal mode)
 
 5. **`propose_transaction`**
+
    - Input: `{ source_text: string, fallback_date?: string, ocr_text?: string }`
    - Output: `{ proposals: [TransactionProposal] }`
    - Logic: Parse user text to extract date, amount, category, account, description
 
 6. **`apply_transaction`** (internal only, called on confirm)
+
    - Input: `{ transaction: TransactionCreate }`
    - Output: `{ transaction_id: string }`
 
 7. **`propose_budget_plan`**
+
    - Input: `{ income, target_savings?, mandatory_payments?: [{ name, amount }], preferences?: string }`
    - Output: `{ proposals: [{ category_id, category_name, suggested_amount }] }`
 
 8. **`apply_budget_plan`** (internal only)
+
    - Input: `{ allocations: [{ category_id, amount, month }] }`
    - Output: `{ budget_ids: string[] }`
 
 9. **`propose_category_changes`**
+
    - Input: `{ instructions: string }` (e.g., "merge Coffee into Food")
    - Output: `{ proposals: [{ action: "create" | "rename" | "merge" | "delete", ... }] }`
 
@@ -234,7 +247,7 @@ class ProposalResponse(BaseModel):
     proposal_type: str
     status: str
     payload: dict
-    
+
 class ApplyRequest(BaseModel):
     proposal_ids: list[str]
     revisions: dict[str, dict] | None
@@ -255,7 +268,7 @@ SQLAlchemy models for `conversations`, `conversation_messages`, `action_proposal
 ```python
 class LLMClient:
     def __init__(self, api_key: str, model: str = "gpt-4o")
-    
+
     async def chat_completion(
         messages: list[dict],
         tools: list[dict],
@@ -266,6 +279,7 @@ class LLMClient:
 ### Configuration Updates: `backend/app/config.py`
 
 Add:
+
 ```python
 OPENAI_API_KEY: str = ""
 ASSISTANT_MODEL: str = "gpt-4o"
@@ -300,6 +314,7 @@ frontend/components/assistant/
 #### `AssistantPanel.tsx`
 
 Main chat container component:
+
 - Props: `{ isOpen, onClose, initialConversationId? }`
 - State:
   - `messages: ConversationMessage[]`
@@ -314,6 +329,7 @@ Main chat container component:
 #### `MessageList.tsx`
 
 Renders message history:
+
 - Groups consecutive tool messages
 - Shows tool indicators under assistant messages
 - Renders proposal cards inline
@@ -321,6 +337,7 @@ Renders message history:
 #### `ChatInput.tsx`
 
 User input component:
+
 - Text input with submit on Enter
 - Image attachment button (opens file picker)
 - Image preview before send
@@ -329,6 +346,7 @@ User input component:
 #### `ProposalCard.tsx`
 
 Generic proposal card with:
+
 - Header showing proposal type
 - Editable form fields (pre-filled from payload)
 - Action buttons: **Confirm**, **Edit** (toggle edit mode), **Discard**
@@ -338,6 +356,7 @@ Generic proposal card with:
 #### `TransactionProposal.tsx`
 
 Transaction-specific proposal:
+
 - Fields: date, amount, type, category, account, description
 - Category/account dropdowns populated from context
 - Amount field with currency formatting
@@ -345,6 +364,7 @@ Transaction-specific proposal:
 #### `BudgetPlanProposal.tsx`
 
 Budget allocation proposal:
+
 - Table with category rows
 - Editable amount per category
 - "Add Category" row
@@ -427,10 +447,12 @@ function useAssistant(initialConversationId?: string) {
 ### Integration Point: Dashboard or Floating Button
 
 Option A: Floating chat button (bottom-right corner)
+
 - `frontend/components/assistant/AssistantTrigger.tsx`
 - Opens `AssistantPanel` as slide-in panel or modal
 
 Option B: Dedicated `/assistant` page
+
 - `frontend/app/(authenticated)/assistant/page.tsx`
 - Full-page chat interface
 
@@ -496,16 +518,19 @@ You are Dompy, a helpful personal finance assistant. You help users manage their
 ## Your Capabilities
 
 You have access to tools that let you:
+
 - Read financial data: transactions, budgets, accounts, summaries
 - Propose changes: new transactions, budget plans, category modifications
 
 ## Tool Usage Rules
 
 1. **Read tools** (get_transactions, get_budget_overview, get_cashflow_summary, get_accounts):
+
    - Use freely to answer questions about user's finances
    - These execute automatically
 
 2. **Propose tools** (propose_transaction, propose_budget_plan, propose_category_changes):
+
    - Use when user wants to add/change data
    - These create proposals that user must confirm
    - Never assume confirmation - always wait for user
@@ -584,51 +609,50 @@ User's income categories: {income_categories}
 
 ### Backend - New Files
 
-| Path | Purpose |
-|------|---------|
-| `backend/alembic/versions/..._add_assistant_tables.py` | Migration |
-| `backend/app/models/assistant.py` | Conversation, Message, Proposal models |
-| `backend/app/schemas/assistant.py` | Request/Response schemas |
-| `backend/app/routers/assistant.py` | API endpoints |
-| `backend/app/services/assistant_service.py` | LLM orchestration |
-| `backend/app/services/llm_client.py` | OpenAI client wrapper |
-| `backend/app/services/tool_registry.py` | Tool definitions and execution |
-| `backend/app/tools/__init__.py` | Tool module init |
-| `backend/app/tools/base.py` | BaseTool class |
-| `backend/app/tools/read/*.py` | Read tool implementations |
-| `backend/app/tools/write/*.py` | Write tool implementations |
+| Path                                                   | Purpose                                |
+| ------------------------------------------------------ | -------------------------------------- |
+| `backend/alembic/versions/..._add_assistant_tables.py` | Migration                              |
+| `backend/app/models/assistant.py`                      | Conversation, Message, Proposal models |
+| `backend/app/schemas/assistant.py`                     | Request/Response schemas               |
+| `backend/app/routers/assistant.py`                     | API endpoints                          |
+| `backend/app/services/assistant_service.py`            | LLM orchestration                      |
+| `backend/app/services/llm_client.py`                   | OpenAI client wrapper                  |
+| `backend/app/services/tool_registry.py`                | Tool definitions and execution         |
+| `backend/app/tools/__init__.py`                        | Tool module init                       |
+| `backend/app/tools/base.py`                            | BaseTool class                         |
+| `backend/app/tools/read/*.py`                          | Read tool implementations              |
+| `backend/app/tools/write/*.py`                         | Write tool implementations             |
 
 ### Backend - Modified Files
 
-| Path | Change |
-|------|--------|
-| `backend/app/main.py` | Register assistant router |
-| `backend/app/config.py` | Add OpenAI config |
-| `backend/app/models/__init__.py` | Export new models |
-| `backend/requirements.txt` | Add `openai`, `tiktoken` |
+| Path                             | Change                    |
+| -------------------------------- | ------------------------- |
+| `backend/app/main.py`            | Register assistant router |
+| `backend/app/config.py`          | Add OpenAI config         |
+| `backend/app/models/__init__.py` | Export new models         |
+| `backend/requirements.txt`       | Add `openai`, `tiktoken`  |
 
 ### Frontend - New Files
 
-| Path | Purpose |
-|------|---------|
-| `frontend/components/assistant/AssistantPanel.tsx` | Main chat container |
-| `frontend/components/assistant/MessageList.tsx` | Message rendering |
-| `frontend/components/assistant/MessageBubble.tsx` | Individual message |
-| `frontend/components/assistant/ChatInput.tsx` | Input with image upload |
-| `frontend/components/assistant/ToolIndicator.tsx` | Tool usage label |
-| `frontend/components/assistant/proposals/*.tsx` | Proposal card components |
-| `frontend/components/assistant/AssistantTrigger.tsx` | Floating button |
-| `frontend/lib/assistant-api.ts` | API client |
-| `frontend/lib/hooks/useAssistant.ts` | State management hook |
-| `frontend/types/assistant.ts` | TypeScript types |
+| Path                                                 | Purpose                  |
+| ---------------------------------------------------- | ------------------------ |
+| `frontend/components/assistant/AssistantPanel.tsx`   | Main chat container      |
+| `frontend/components/assistant/MessageList.tsx`      | Message rendering        |
+| `frontend/components/assistant/MessageBubble.tsx`    | Individual message       |
+| `frontend/components/assistant/ChatInput.tsx`        | Input with image upload  |
+| `frontend/components/assistant/ToolIndicator.tsx`    | Tool usage label         |
+| `frontend/components/assistant/proposals/*.tsx`      | Proposal card components |
+| `frontend/components/assistant/AssistantTrigger.tsx` | Floating button          |
+| `frontend/lib/assistant-api.ts`                      | API client               |
+| `frontend/lib/hooks/useAssistant.ts`                 | State management hook    |
+| `frontend/types/assistant.ts`                        | TypeScript types         |
 
 ### Frontend - Modified Files
 
-| Path | Change |
-|------|--------|
-| `frontend/app/(authenticated)/layout.tsx` | Add AssistantTrigger |
-| `frontend/types/index.ts` | Re-export assistant types |
-
+| Path                                      | Change                    |
+| ----------------------------------------- | ------------------------- |
+| `frontend/app/(authenticated)/layout.tsx` | Add AssistantTrigger      |
+| `frontend/types/index.ts`                 | Re-export assistant types |
 
 ## Context
 
@@ -644,42 +668,42 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
 
 #### 1. `conversations` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK | Unique conversation identifier |
-| `user_id` | VARCHAR | NOT NULL, FK | Clerk user ID |
-| `title` | VARCHAR(255) | | Auto-generated or user-set title |
-| `created_at` | TIMESTAMP | NOT NULL | Creation timestamp |
-| `updated_at` | TIMESTAMP | NOT NULL | Last activity timestamp |
+| Column       | Type         | Constraints  | Description                      |
+| ------------ | ------------ | ------------ | -------------------------------- |
+| `id`         | UUID         | PK           | Unique conversation identifier   |
+| `user_id`    | VARCHAR      | NOT NULL, FK | Clerk user ID                    |
+| `title`      | VARCHAR(255) |              | Auto-generated or user-set title |
+| `created_at` | TIMESTAMP    | NOT NULL     | Creation timestamp               |
+| `updated_at` | TIMESTAMP    | NOT NULL     | Last activity timestamp          |
 
 #### 2. `conversation_messages` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK | Unique message identifier |
-| `conversation_id` | UUID | NOT NULL, FK | Parent conversation |
-| `role` | VARCHAR(20) | NOT NULL | `user`, `assistant`, `system`, `tool` |
-| `content` | TEXT | | Message text content |
-| `image_url` | TEXT | | Optional image attachment URL |
-| `tool_calls` | JSONB | | Array of tool calls made (for assistant messages) |
-| `tool_call_id` | VARCHAR(100) | | Tool call ID (for tool result messages) |
-| `tool_name` | VARCHAR(100) | | Tool name (for tool result messages) |
-| `created_at` | TIMESTAMP | NOT NULL | Message timestamp |
+| Column            | Type         | Constraints  | Description                                       |
+| ----------------- | ------------ | ------------ | ------------------------------------------------- |
+| `id`              | UUID         | PK           | Unique message identifier                         |
+| `conversation_id` | UUID         | NOT NULL, FK | Parent conversation                               |
+| `role`            | VARCHAR(20)  | NOT NULL     | `user`, `assistant`, `system`, `tool`             |
+| `content`         | TEXT         |              | Message text content                              |
+| `image_url`       | TEXT         |              | Optional image attachment URL                     |
+| `tool_calls`      | JSONB        |              | Array of tool calls made (for assistant messages) |
+| `tool_call_id`    | VARCHAR(100) |              | Tool call ID (for tool result messages)           |
+| `tool_name`       | VARCHAR(100) |              | Tool name (for tool result messages)              |
+| `created_at`      | TIMESTAMP    | NOT NULL     | Message timestamp                                 |
 
 #### 3. `action_proposals` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK | Proposal identifier |
-| `conversation_id` | UUID | NOT NULL, FK | Parent conversation |
-| `message_id` | UUID | NOT NULL, FK | Message that created proposal |
-| `proposal_type` | VARCHAR(50) | NOT NULL | `transaction`, `budget`, `category`, `transfer` |
-| `status` | VARCHAR(20) | NOT NULL | `pending`, `confirmed`, `revised`, `discarded` |
-| `original_payload` | JSONB | NOT NULL | Initial payload from tool |
-| `revised_payload` | JSONB | | User-modified payload |
-| `applied_at` | TIMESTAMP | | When applied to DB |
-| `result_id` | UUID | | ID of created/updated entity |
-| `created_at` | TIMESTAMP | NOT NULL | Creation timestamp |
+| Column             | Type        | Constraints  | Description                                     |
+| ------------------ | ----------- | ------------ | ----------------------------------------------- |
+| `id`               | UUID        | PK           | Proposal identifier                             |
+| `conversation_id`  | UUID        | NOT NULL, FK | Parent conversation                             |
+| `message_id`       | UUID        | NOT NULL, FK | Message that created proposal                   |
+| `proposal_type`    | VARCHAR(50) | NOT NULL     | `transaction`, `budget`, `category`, `transfer` |
+| `status`           | VARCHAR(20) | NOT NULL     | `pending`, `confirmed`, `revised`, `discarded`  |
+| `original_payload` | JSONB       | NOT NULL     | Initial payload from tool                       |
+| `revised_payload`  | JSONB       |              | User-modified payload                           |
+| `applied_at`       | TIMESTAMP   |              | When applied to DB                              |
+| `result_id`        | UUID        |              | ID of created/updated entity                    |
+| `created_at`       | TIMESTAMP   | NOT NULL     | Creation timestamp                              |
 
 ### Migration File
 
@@ -694,6 +718,7 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
 #### Endpoints
 
 1. **`POST /api/assistant/message`**
+
    - Input: `{ conversation_id?: string, message: string, image_url?: string }`
    - Process:
      - Create/retrieve conversation
@@ -705,6 +730,7 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
      - Return: `{ message_id, content, tool_calls, proposals }`
 
 2. **`POST /api/assistant/apply`**
+
    - Input: `{ proposal_ids: string[], revisions?: Record<string, object> }`
    - Process:
      - Validate proposal ownership and status
@@ -713,13 +739,16 @@ The user experience goal: "I just talk to it. It figures out what to do, shows m
      - Return: `{ results: [{ proposal_id, success, entity_id, error? }] }`
 
 3. **`PATCH /api/assistant/proposals/{proposal_id}`**
+
    - Input: `{ revised_payload: object, status?: "revised" | "discarded" }`
    - Updates proposal revision or discards it
 
 4. **`GET /api/assistant/conversations`**
+
    - Returns list of user's conversations (paginated)
 
 5. **`GET /api/assistant/conversations/{conversation_id}`**
+
    - Returns conversation with all messages and proposals
 
 6. **`DELETE /api/assistant/conversations/{conversation_id}`**
@@ -746,7 +775,7 @@ Defines and executes tools:
 ```python
 class ToolRegistry:
     tools: dict[str, ToolDefinition]
-    
+
     def get_tool_definitions() -> list[dict]  # OpenAI function format
     def execute(name, arguments, db, user_id) -> ToolResult
     def is_read_tool(name) -> bool
@@ -791,7 +820,7 @@ class ToolDefinition:
 
 class BaseTool(ABC):
     definition: ToolDefinition
-    
+
     @abstractmethod
     def execute(self, arguments: dict, db: Session, user_id: str) -> ToolResult
 ```
@@ -801,14 +830,17 @@ class BaseTool(ABC):
 #### Read Tools (auto-execute)
 
 1. **`get_transactions`**
+
    - Input: `{ date_from?, date_to?, category_id?, account_id?, limit?, search? }`
    - Output: `{ transactions: Transaction[], total_count: int }`
 
 2. **`get_budget_overview`**
+
    - Input: `{ month: string }` (YYYY-MM)
    - Output: `{ budgets: [{ category, limit, spent, remaining, percentage }] }`
 
 3. **`get_cashflow_summary`**
+
    - Input: `{ period: "week" | "month" | "custom", date_from?, date_to? }`
    - Output: `{ income, expense, net, by_category: [{ category, amount }] }`
 
@@ -819,23 +851,28 @@ class BaseTool(ABC):
 #### Write Tools (proposal mode)
 
 5. **`propose_transaction`**
+
    - Input: `{ source_text: string, fallback_date?: string, ocr_text?: string }`
    - Output: `{ proposals: [TransactionProposal] }`
    - Logic: Parse user text to extract date, amount, category, account, description
 
 6. **`apply_transaction`** (internal only, called on confirm)
+
    - Input: `{ transaction: TransactionCreate }`
    - Output: `{ transaction_id: string }`
 
 7. **`propose_budget_plan`**
+
    - Input: `{ income, target_savings?, mandatory_payments?: [{ name, amount }], preferences?: string }`
    - Output: `{ proposals: [{ category_id, category_name, suggested_amount }] }`
 
 8. **`apply_budget_plan`** (internal only)
+
    - Input: `{ allocations: [{ category_id, amount, month }] }`
    - Output: `{ budget_ids: string[] }`
 
 9. **`propose_category_changes`**
+
    - Input: `{ instructions: string }` (e.g., "merge Coffee into Food")
    - Output: `{ proposals: [{ action: "create" | "rename" | "merge" | "delete", ... }] }`
 
@@ -864,7 +901,7 @@ class ProposalResponse(BaseModel):
     proposal_type: str
     status: str
     payload: dict
-    
+
 class ApplyRequest(BaseModel):
     proposal_ids: list[str]
     revisions: dict[str, dict] | None
@@ -885,7 +922,7 @@ SQLAlchemy models for `conversations`, `conversation_messages`, `action_proposal
 ```python
 class LLMClient:
     def __init__(self, api_key: str, model: str = "gpt-4o")
-    
+
     async def chat_completion(
         messages: list[dict],
         tools: list[dict],
@@ -896,6 +933,7 @@ class LLMClient:
 ### Configuration Updates: `backend/app/config.py`
 
 Add:
+
 ```python
 OPENAI_API_KEY: str = ""
 ASSISTANT_MODEL: str = "gpt-4o"
@@ -930,6 +968,7 @@ frontend/components/assistant/
 #### `AssistantPanel.tsx`
 
 Main chat container component:
+
 - Props: `{ isOpen, onClose, initialConversationId? }`
 - State:
   - `messages: ConversationMessage[]`
@@ -944,6 +983,7 @@ Main chat container component:
 #### `MessageList.tsx`
 
 Renders message history:
+
 - Groups consecutive tool messages
 - Shows tool indicators under assistant messages
 - Renders proposal cards inline
@@ -951,6 +991,7 @@ Renders message history:
 #### `ChatInput.tsx`
 
 User input component:
+
 - Text input with submit on Enter
 - Image attachment button (opens file picker)
 - Image preview before send
@@ -959,6 +1000,7 @@ User input component:
 #### `ProposalCard.tsx`
 
 Generic proposal card with:
+
 - Header showing proposal type
 - Editable form fields (pre-filled from payload)
 - Action buttons: **Confirm**, **Edit** (toggle edit mode), **Discard**
@@ -968,6 +1010,7 @@ Generic proposal card with:
 #### `TransactionProposal.tsx`
 
 Transaction-specific proposal:
+
 - Fields: date, amount, type, category, account, description
 - Category/account dropdowns populated from context
 - Amount field with currency formatting
@@ -975,6 +1018,7 @@ Transaction-specific proposal:
 #### `BudgetPlanProposal.tsx`
 
 Budget allocation proposal:
+
 - Table with category rows
 - Editable amount per category
 - "Add Category" row
@@ -1057,10 +1101,12 @@ function useAssistant(initialConversationId?: string) {
 ### Integration Point: Dashboard or Floating Button
 
 Option A: Floating chat button (bottom-right corner)
+
 - `frontend/components/assistant/AssistantTrigger.tsx`
 - Opens `AssistantPanel` as slide-in panel or modal
 
 Option B: Dedicated `/assistant` page
+
 - `frontend/app/(authenticated)/assistant/page.tsx`
 - Full-page chat interface
 
@@ -1126,16 +1172,19 @@ You are Dompy, a helpful personal finance assistant. You help users manage their
 ## Your Capabilities
 
 You have access to tools that let you:
+
 - Read financial data: transactions, budgets, accounts, summaries
 - Propose changes: new transactions, budget plans, category modifications
 
 ## Tool Usage Rules
 
 1. **Read tools** (get_transactions, get_budget_overview, get_cashflow_summary, get_accounts):
+
    - Use freely to answer questions about user's finances
    - These execute automatically
 
 2. **Propose tools** (propose_transaction, propose_budget_plan, propose_category_changes):
+
    - Use when user wants to add/change data
    - These create proposals that user must confirm
    - Never assume confirmation - always wait for user
@@ -1214,48 +1263,47 @@ User's income categories: {income_categories}
 
 ### Backend - New Files
 
-| Path | Purpose |
-|------|---------|
-| `backend/alembic/versions/..._add_assistant_tables.py` | Migration |
-| `backend/app/models/assistant.py` | Conversation, Message, Proposal models |
-| `backend/app/schemas/assistant.py` | Request/Response schemas |
-| `backend/app/routers/assistant.py` | API endpoints |
-| `backend/app/services/assistant_service.py` | LLM orchestration |
-| `backend/app/services/llm_client.py` | OpenAI client wrapper |
-| `backend/app/services/tool_registry.py` | Tool definitions and execution |
-| `backend/app/tools/__init__.py` | Tool module init |
-| `backend/app/tools/base.py` | BaseTool class |
-| `backend/app/tools/read/*.py` | Read tool implementations |
-| `backend/app/tools/write/*.py` | Write tool implementations |
+| Path                                                   | Purpose                                |
+| ------------------------------------------------------ | -------------------------------------- |
+| `backend/alembic/versions/..._add_assistant_tables.py` | Migration                              |
+| `backend/app/models/assistant.py`                      | Conversation, Message, Proposal models |
+| `backend/app/schemas/assistant.py`                     | Request/Response schemas               |
+| `backend/app/routers/assistant.py`                     | API endpoints                          |
+| `backend/app/services/assistant_service.py`            | LLM orchestration                      |
+| `backend/app/services/llm_client.py`                   | OpenAI client wrapper                  |
+| `backend/app/services/tool_registry.py`                | Tool definitions and execution         |
+| `backend/app/tools/__init__.py`                        | Tool module init                       |
+| `backend/app/tools/base.py`                            | BaseTool class                         |
+| `backend/app/tools/read/*.py`                          | Read tool implementations              |
+| `backend/app/tools/write/*.py`                         | Write tool implementations             |
 
 ### Backend - Modified Files
 
-| Path | Change |
-|------|--------|
-| `backend/app/main.py` | Register assistant router |
-| `backend/app/config.py` | Add OpenAI config |
-| `backend/app/models/__init__.py` | Export new models |
-| `backend/requirements.txt` | Add `openai`, `tiktoken` |
+| Path                             | Change                    |
+| -------------------------------- | ------------------------- |
+| `backend/app/main.py`            | Register assistant router |
+| `backend/app/config.py`          | Add OpenAI config         |
+| `backend/app/models/__init__.py` | Export new models         |
+| `backend/requirements.txt`       | Add `openai`, `tiktoken`  |
 
 ### Frontend - New Files
 
-| Path | Purpose |
-|------|---------|
-| `frontend/components/assistant/AssistantPanel.tsx` | Main chat container |
-| `frontend/components/assistant/MessageList.tsx` | Message rendering |
-| `frontend/components/assistant/MessageBubble.tsx` | Individual message |
-| `frontend/components/assistant/ChatInput.tsx` | Input with image upload |
-| `frontend/components/assistant/ToolIndicator.tsx` | Tool usage label |
-| `frontend/components/assistant/proposals/*.tsx` | Proposal card components |
-| `frontend/components/assistant/AssistantTrigger.tsx` | Floating button |
-| `frontend/lib/assistant-api.ts` | API client |
-| `frontend/lib/hooks/useAssistant.ts` | State management hook |
-| `frontend/types/assistant.ts` | TypeScript types |
+| Path                                                 | Purpose                  |
+| ---------------------------------------------------- | ------------------------ |
+| `frontend/components/assistant/AssistantPanel.tsx`   | Main chat container      |
+| `frontend/components/assistant/MessageList.tsx`      | Message rendering        |
+| `frontend/components/assistant/MessageBubble.tsx`    | Individual message       |
+| `frontend/components/assistant/ChatInput.tsx`        | Input with image upload  |
+| `frontend/components/assistant/ToolIndicator.tsx`    | Tool usage label         |
+| `frontend/components/assistant/proposals/*.tsx`      | Proposal card components |
+| `frontend/components/assistant/AssistantTrigger.tsx` | Floating button          |
+| `frontend/lib/assistant-api.ts`                      | API client               |
+| `frontend/lib/hooks/useAssistant.ts`                 | State management hook    |
+| `frontend/types/assistant.ts`                        | TypeScript types         |
 
 ### Frontend - Modified Files
 
-| Path | Change |
-|------|--------|
-| `frontend/app/(authenticated)/layout.tsx` | Add AssistantTrigger |
-| `frontend/types/index.ts` | Re-export assistant types |
-
+| Path                                      | Change                    |
+| ----------------------------------------- | ------------------------- |
+| `frontend/app/(authenticated)/layout.tsx` | Add AssistantTrigger      |
+| `frontend/types/index.ts`                 | Re-export assistant types |

@@ -1,12 +1,12 @@
 """
-Dompy Assistant Tools Module
+Dompy Assistant Tool System.
 
-Provides read and write tools for the AI assistant to interact with
-the NeoBudget financial data.
+This module provides the tool infrastructure for the assistant,
+including tool definitions, registry, and execution.
 """
 
 from app.tools.base import BaseTool, ToolDefinition, ToolResult, ToolKind
-from app.tools.registry import ToolRegistry
+from app.tools.registry import ToolRegistry, tool_registry
 
 __all__ = [
     "BaseTool",
@@ -14,5 +14,8 @@ __all__ = [
     "ToolResult",
     "ToolKind",
     "ToolRegistry",
+    "tool_registry",
 ]
+
+
 

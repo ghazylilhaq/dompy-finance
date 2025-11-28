@@ -21,6 +21,7 @@ from app.routers import (
     dashboard,
     imports,
     onboarding,
+    assistant,
 )
 
 
@@ -82,6 +83,11 @@ app.include_router(
     onboarding.router,
     prefix="/api/onboarding",
     tags=["Onboarding"],
+)
+app.include_router(
+    assistant.router,
+    prefix="/api/assistant",
+    tags=["Assistant"],
 )
 
 

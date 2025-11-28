@@ -1,5 +1,7 @@
 """
-Base classes for Dompy Assistant tools.
+Base classes for the Dompy Assistant tool system.
+
+Provides the foundational abstractions for defining and executing tools.
 """
 
 from abc import ABC, abstractmethod
@@ -11,24 +13,24 @@ from sqlalchemy.orm import Session
 
 
 class ToolKind(str, Enum):
-    """Tool classification for permission handling."""
+    """Classification of tool types."""
 
-    READ = "read"  # Auto-execute, no confirmation needed
-    WRITE = "write"  # Requires user confirmation
+    READ = "read"  # Read-only data access, auto-executed
+    WRITE = "write"  # Data modification, requires confirmation
 
 
 @dataclass
 class ToolDefinition:
     """
-    Metadata for a tool that the LLM can call.
+    Metadata describing a tool's interface.
 
     Attributes:
         name: Unique tool identifier (e.g., "get_transactions")
         description: Human-readable description for the LLM
-        input_schema: JSON Schema for tool arguments
-        result_schema: JSON Schema for tool result
-        kind: Whether this is a read or write tool
-        requires_confirmation: Override for confirmation requirement
+        input_schema: JSON Schema describing expected input
+        result_schema: JSON Schema describing output format
+        kind: Tool classification (read/write)
+        requires_confirmation: Whether user must confirm (defaults to kind == write)
     """
 
     name: str
@@ -39,7 +41,6 @@ class ToolDefinition:
     requires_confirmation: bool | None = None
 
     def __post_init__(self):
-        """Set default confirmation based on kind if not specified."""
         if self.requires_confirmation is None:
             self.requires_confirmation = self.kind == ToolKind.WRITE
 
@@ -58,40 +59,45 @@ class ToolDefinition:
 @dataclass
 class ToolResult:
     """
-    Result of executing a tool.
+    Result of tool execution.
 
     Attributes:
-        data: The result data from the tool
-        is_error: Whether the execution failed
-        error_message: Error description if is_error is True
-        proposals: For write tools, list of proposal payloads
+        success: Whether execution succeeded
+        data: Result data (varies by tool)
+        error: Error message if failed
+        proposals: List of proposals generated (for propose_* tools)
     """
 
+    success: bool
     data: Any = None
-    is_error: bool = False
-    error_message: str | None = None
-    proposals: list[dict[str, Any]] | None = None
+    error: str | None = None
+    proposals: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for serialization."""
-        if self.is_error:
-            return {"error": self.error_message}
-        return {"result": self.data, "proposals": self.proposals}
+        """Convert to dictionary for JSON serialization."""
+        result = {"success": self.success}
+        if self.data is not None:
+            result["data"] = self.data
+        if self.error:
+            result["error"] = self.error
+        if self.proposals:
+            result["proposals"] = self.proposals
+        return result
 
 
 class BaseTool(ABC):
     """
-    Abstract base class for all Dompy Assistant tools.
+    Abstract base class for all assistant tools.
 
     Subclasses must implement:
-    - definition: ToolDefinition property
-    - execute: The actual tool logic
+    - definition: Property returning ToolDefinition
+    - execute: Method that performs the tool's action
     """
 
     @property
     @abstractmethod
     def definition(self) -> ToolDefinition:
-        """Return the tool's metadata and schema."""
+        """Return the tool's definition metadata."""
         pass
 
     @abstractmethod
@@ -102,15 +108,15 @@ class BaseTool(ABC):
         user_id: str,
     ) -> ToolResult:
         """
-        Execute the tool with the given arguments.
+        Execute the tool with given arguments.
 
         Args:
-            arguments: Tool arguments from the LLM
+            arguments: Parsed arguments matching input_schema
             db: Database session
             user_id: Current user's ID
 
         Returns:
-            ToolResult with data or error
+            ToolResult with success status and data/error
         """
         pass
 
@@ -124,18 +130,15 @@ class BaseTool(ABC):
         """Convenience property for tool kind."""
         return self.definition.kind
 
-    def validate_arguments(self, arguments: dict[str, Any]) -> tuple[bool, str | None]:
-        """
-        Basic argument validation.
+    @property
+    def is_read_tool(self) -> bool:
+        """Check if this is a read-only tool."""
+        return self.kind == ToolKind.READ
 
-        Override for custom validation logic.
+    @property
+    def is_write_tool(self) -> bool:
+        """Check if this is a write tool."""
+        return self.kind == ToolKind.WRITE
 
-        Returns:
-            Tuple of (is_valid, error_message)
-        """
-        required = self.definition.input_schema.get("required", [])
-        for field_name in required:
-            if field_name not in arguments:
-                return False, f"Missing required field: {field_name}"
-        return True, None
+
 

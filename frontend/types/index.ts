@@ -165,3 +165,9 @@ export interface PreviewResult {
   totalTransfers: number;
   warnings: string[];
 }
+
+// =============================================================================
+// Re-export Assistant Types
+// =============================================================================
+
+export * from "./assistant";

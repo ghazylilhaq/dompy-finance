@@ -35,6 +35,10 @@ class Settings(BaseSettings):
         "https://pleased-tarpon-15.clerk.accounts.dev/.well-known/jwks.json"
     )
 
+    # OpenAI API for Dompy Assistant
+    OPENAI_API_KEY: str = ""
+    ASSISTANT_MODEL: str = "gpt-4o"
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS string into a list."""
@@ -44,6 +48,11 @@ class Settings(BaseSettings):
     def is_sqlite(self) -> bool:
         """Check if using SQLite database."""
         return self.DATABASE_URL.startswith("sqlite")
+
+    @property
+    def has_openai_key(self) -> bool:
+        """Check if OpenAI API key is configured."""
+        return bool(self.OPENAI_API_KEY)
 
 
 settings = Settings()

@@ -1,21 +1,14 @@
 """
-Pydantic schemas for Assistant operations.
+Pydantic schemas for the Dompy Assistant API.
+
+Defines request/response models for conversations, messages, and proposals.
 """
 
 from datetime import datetime
-from typing import Optional, Any, Literal
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
-
-
-# =============================================================================
-# Enums and Types
-# =============================================================================
-
-MessageRole = Literal["user", "assistant", "system", "tool"]
-ProposalType = Literal["transaction", "budget", "category", "transfer"]
-ProposalStatus = Literal["pending", "confirmed", "revised", "discarded"]
+from pydantic import BaseModel, Field
 
 
 # =============================================================================
@@ -26,18 +19,10 @@ ProposalStatus = Literal["pending", "confirmed", "revised", "discarded"]
 class ToolCallInfo(BaseModel):
     """Information about a tool call made by the assistant."""
 
-    id: str = Field(..., description="Unique tool call ID")
-    tool_name: str = Field(..., description="Name of the tool")
-    arguments: dict[str, Any] = Field(..., description="Tool arguments")
-
-
-class ToolResult(BaseModel):
-    """Result of a tool execution."""
-
-    tool_call_id: str = Field(..., description="ID of the tool call this is for")
-    tool_name: str = Field(..., description="Name of the tool")
-    result: Any = Field(..., description="Tool execution result")
-    is_error: bool = Field(default=False, description="Whether execution failed")
+    id: str = Field(..., description="Unique tool call identifier")
+    tool_name: str = Field(..., description="Name of the tool called")
+    arguments: dict[str, Any] = Field(..., description="Arguments passed to the tool")
+    result: Any | None = Field(None, description="Result from tool execution")
 
 
 # =============================================================================
@@ -48,26 +33,38 @@ class ToolResult(BaseModel):
 class MessageRequest(BaseModel):
     """Request to send a message to the assistant."""
 
-    conversation_id: Optional[UUID] = Field(
-        None, description="Existing conversation ID, or null for new"
+    conversation_id: UUID | None = Field(
+        None, description="Existing conversation ID, or None to create new"
     )
-    message: str = Field(..., min_length=1, description="User message content")
-    image_url: Optional[str] = Field(None, description="Optional image attachment URL")
+    message: str = Field(..., min_length=1, description="User's message text")
+    image_url: str | None = Field(None, description="Optional image attachment URL")
 
 
-class ConversationMessageResponse(BaseModel):
-    """A single message in a conversation."""
-
-    model_config = ConfigDict(from_attributes=True)
+class MessageBase(BaseModel):
+    """Base message fields."""
 
     id: UUID
-    role: MessageRole
-    content: Optional[str] = None
-    image_url: Optional[str] = None
-    tool_calls: Optional[list[ToolCallInfo]] = None
-    tool_call_id: Optional[str] = None
-    tool_name: Optional[str] = None
+    role: Literal["user", "assistant", "system", "tool"]
+    content: str | None
+    image_url: str | None = None
+    tool_calls: list[ToolCallInfo] | None = None
+    tool_call_id: str | None = None
+    tool_name: str | None = None
     created_at: datetime
+
+
+class MessageResponse(BaseModel):
+    """Response after sending a message."""
+
+    conversation_id: UUID = Field(..., description="Conversation ID")
+    message_id: UUID = Field(..., description="ID of the assistant's response message")
+    content: str = Field(..., description="Assistant's response text")
+    tool_calls: list[ToolCallInfo] = Field(
+        default_factory=list, description="Tools called during processing"
+    )
+    proposals: list["ProposalResponse"] = Field(
+        default_factory=list, description="Action proposals created"
+    )
 
 
 # =============================================================================
@@ -76,76 +73,54 @@ class ConversationMessageResponse(BaseModel):
 
 
 class ProposalResponse(BaseModel):
-    """An action proposal requiring user confirmation."""
-
-    model_config = ConfigDict(from_attributes=True)
+    """Response schema for an action proposal."""
 
     id: UUID
-    proposal_type: ProposalType
-    status: ProposalStatus
-    payload: dict[str, Any] = Field(
-        ..., description="Effective payload (revised if available)"
+    proposal_type: Literal["transaction", "budget", "category", "transfer"]
+    status: Literal["pending", "confirmed", "revised", "discarded"]
+    payload: dict[str, Any] = Field(..., description="Current proposal payload")
+    original_payload: dict[str, Any] = Field(..., description="Original payload")
+    revised_payload: dict[str, Any] | None = Field(
+        None, description="User-revised payload"
     )
-    original_payload: dict[str, Any]
-    revised_payload: Optional[dict[str, Any]] = None
-    applied_at: Optional[datetime] = None
-    result_id: Optional[str] = None
     created_at: datetime
+    applied_at: datetime | None = None
+    result_id: UUID | None = None
 
 
 class ProposalUpdate(BaseModel):
     """Request to update a proposal."""
 
-    revised_payload: Optional[dict[str, Any]] = Field(
-        None, description="Updated payload"
+    revised_payload: dict[str, Any] | None = Field(
+        None, description="Updated payload values"
     )
-    status: Optional[Literal["revised", "discarded"]] = Field(
+    status: Literal["revised", "discarded"] | None = Field(
         None, description="New status"
     )
 
 
-# =============================================================================
-# Response Schemas
-# =============================================================================
+class ApplyRequest(BaseModel):
+    """Request to apply (confirm) proposals."""
 
-
-class MessageResponse(BaseModel):
-    """Response after sending a message to the assistant."""
-
-    conversation_id: UUID
-    message_id: UUID
-    content: str = Field(..., description="Assistant's reply text")
-    tool_calls: list[ToolCallInfo] = Field(
-        default_factory=list, description="Tools called during processing"
-    )
-    proposals: list[ProposalResponse] = Field(
-        default_factory=list, description="Generated action proposals"
+    proposal_ids: list[UUID] = Field(..., min_length=1, description="IDs to apply")
+    revisions: dict[str, dict[str, Any]] | None = Field(
+        None, description="Last-minute revisions keyed by proposal ID"
     )
 
 
-class ApplyProposalRequest(BaseModel):
-    """Request to apply one or more proposals."""
-
-    proposal_ids: list[UUID] = Field(..., min_length=1, description="Proposal IDs to apply")
-    revisions: Optional[dict[str, dict[str, Any]]] = Field(
-        None,
-        description="Optional payload revisions keyed by proposal ID string",
-    )
-
-
-class ApplyProposalResult(BaseModel):
+class ApplyResultItem(BaseModel):
     """Result of applying a single proposal."""
 
     proposal_id: UUID
     success: bool
-    entity_id: Optional[str] = Field(None, description="ID of created/updated entity")
-    error: Optional[str] = Field(None, description="Error message if failed")
+    entity_id: UUID | None = None
+    error: str | None = None
 
 
-class ApplyProposalsResponse(BaseModel):
+class ApplyResponse(BaseModel):
     """Response after applying proposals."""
 
-    results: list[ApplyProposalResult]
+    results: list[ApplyResultItem]
 
 
 # =============================================================================
@@ -154,28 +129,25 @@ class ApplyProposalsResponse(BaseModel):
 
 
 class ConversationSummary(BaseModel):
-    """Summary of a conversation for list views."""
-
-    model_config = ConfigDict(from_attributes=True)
+    """Summary of a conversation for listing."""
 
     id: UUID
-    title: Optional[str] = None
+    title: str | None
     created_at: datetime
     updated_at: datetime
-    message_count: int = Field(default=0, description="Number of messages")
+    message_count: int = 0
+    last_message_preview: str | None = None
 
 
 class ConversationDetail(BaseModel):
     """Full conversation with messages and proposals."""
 
-    model_config = ConfigDict(from_attributes=True)
-
     id: UUID
-    title: Optional[str] = None
+    title: str | None
     created_at: datetime
     updated_at: datetime
-    messages: list[ConversationMessageResponse] = Field(default_factory=list)
-    proposals: list[ProposalResponse] = Field(default_factory=list)
+    messages: list[MessageBase]
+    proposals: list[ProposalResponse]
 
 
 class ConversationListResponse(BaseModel):
@@ -183,6 +155,75 @@ class ConversationListResponse(BaseModel):
 
     conversations: list[ConversationSummary]
     total: int
-    skip: int
-    limit: int
+    has_more: bool
+
+
+# =============================================================================
+# Transaction Proposal Payload
+# =============================================================================
+
+
+class TransactionProposalPayload(BaseModel):
+    """Payload structure for a transaction proposal."""
+
+    date: str = Field(..., description="Transaction date (ISO format)")
+    amount: float = Field(..., gt=0, description="Transaction amount")
+    type: Literal["income", "expense"] = Field(..., description="Transaction type")
+    category_id: UUID | None = Field(None, description="Category ID")
+    category_name: str | None = Field(None, description="Category name for display")
+    account_id: UUID | None = Field(None, description="Account ID")
+    account_name: str | None = Field(None, description="Account name for display")
+    description: str = Field("", description="Transaction description")
+    tags: list[str] = Field(default_factory=list, description="Transaction tags")
+
+
+# =============================================================================
+# Budget Proposal Payload
+# =============================================================================
+
+
+class BudgetAllocation(BaseModel):
+    """Single budget allocation in a plan."""
+
+    category_id: UUID
+    category_name: str
+    suggested_amount: float
+
+
+class BudgetPlanProposalPayload(BaseModel):
+    """Payload structure for a budget plan proposal."""
+
+    month: str = Field(..., description="Budget month (YYYY-MM format)")
+    allocations: list[BudgetAllocation]
+    total_income: float | None = None
+    total_allocated: float | None = None
+
+
+# =============================================================================
+# Category Change Proposal Payload
+# =============================================================================
+
+
+class CategoryChangeItem(BaseModel):
+    """Single category change operation."""
+
+    action: Literal["create", "rename", "merge", "delete"]
+    category_id: UUID | None = None
+    new_name: str | None = None
+    new_type: Literal["income", "expense"] | None = None
+    merge_into_id: UUID | None = None
+    color: str | None = None
+    icon: str | None = None
+
+
+class CategoryChangesProposalPayload(BaseModel):
+    """Payload structure for category changes proposal."""
+
+    changes: list[CategoryChangeItem]
+
+
+# Rebuild models to resolve forward references
+MessageResponse.model_rebuild()
+
+
 
