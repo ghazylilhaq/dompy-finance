@@ -306,3 +306,4 @@ open https://your-frontend-url.com
 
 **Ready to deploy? Go to Dokploy and click "Redeploy" on both services!** 🚀
 
+

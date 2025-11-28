@@ -232,3 +232,4 @@ No database schema changes required. The application already supports PostgreSQL
 - Create nixpacks.toml files if needed
 - Add health check improvements
 - Configure logging
+
