@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Clerk Authentication
     CLERK_SECRET_KEY: str = ""
     CLERK_JWKS_URL: str = (
-        # "https://pleased-tarpon-15.clerk.accounts.dev/.well-known/jwks.json"
+        "https://pleased-tarpon-15.clerk.accounts.dev/.well-known/jwks.json"
     )
 
     @property
