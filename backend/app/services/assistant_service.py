@@ -47,16 +47,21 @@ class AssistantService:
     ) -> Conversation:
         """Get existing conversation or create a new one."""
         if conversation_id:
-            conversation = (
-                self.db.query(Conversation)
-                .filter(
-                    Conversation.id == conversation_id,
-                    Conversation.user_id == self.user_id,
+            try:
+                conv_uuid = uuid.UUID(conversation_id)
+                conversation = (
+                    self.db.query(Conversation)
+                    .filter(
+                        Conversation.id == conv_uuid,
+                        Conversation.user_id == self.user_id,
+                    )
+                    .first()
                 )
-                .first()
-            )
-            if conversation:
-                return conversation
+                if conversation:
+                    return conversation
+            except (ValueError, TypeError):
+                # Invalid UUID format, create new conversation
+                pass
 
         # Create new conversation
         conversation = Conversation(
@@ -69,14 +74,18 @@ class AssistantService:
 
     def get_conversation(self, conversation_id: str) -> Conversation | None:
         """Get a conversation by ID."""
-        return (
-            self.db.query(Conversation)
-            .filter(
-                Conversation.id == conversation_id,
-                Conversation.user_id == self.user_id,
+        try:
+            conv_uuid = uuid.UUID(conversation_id)
+            return (
+                self.db.query(Conversation)
+                .filter(
+                    Conversation.id == conv_uuid,
+                    Conversation.user_id == self.user_id,
+                )
+                .first()
             )
-            .first()
-        )
+        except (ValueError, TypeError):
+            return None
 
     def get_conversations(
         self, skip: int = 0, limit: int = 20
@@ -96,7 +105,7 @@ class AssistantService:
         conversation = self.get_conversation(conversation_id)
         if not conversation:
             return False
-        
+
         self.db.delete(conversation)
         self.db.commit()
         return True
@@ -137,12 +146,12 @@ class AssistantService:
 
         # Build context
         context = self._build_context(conversation)
-        
+
         # Build messages for LLM
         messages = self._build_llm_messages(conversation, context)
 
         # Get tool definitions
-        tool_definitions = self.tool_registry.get_tool_definitions(for_llm=True)
+        tool_definitions = self.tool_registry.get_openai_tools()
 
         # Process with LLM (may involve multiple rounds for tool execution)
         final_response, executed_tools, proposals = self._process_with_tools(
@@ -209,12 +218,16 @@ class AssistantService:
         """Build context data for the conversation."""
         # Get accounts
         from app.tools.read.get_accounts import GetAccountsTool
+
         accounts_tool = GetAccountsTool()
         accounts_result = accounts_tool.execute({}, self.db, self.user_id)
-        accounts = accounts_result.data.get("accounts", []) if accounts_result.data else []
+        accounts = (
+            accounts_result.data.get("accounts", []) if accounts_result.data else []
+        )
 
         # Get categories
         from app.tools.read.get_categories import GetCategoriesTool
+
         categories_tool = GetCategoriesTool()
         categories_result = categories_tool.execute({}, self.db, self.user_id)
         categories = categories_result.data if categories_result.data else {}
@@ -255,11 +268,13 @@ class AssistantService:
                 messages.append({"role": "assistant", "content": msg.content or ""})
             elif msg.role == "tool":
                 # Include tool results in history
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.tool_call_id,
-                    "content": msg.content or "",
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": msg.tool_call_id,
+                        "content": msg.content or "",
+                    }
+                )
 
         return messages
 
@@ -296,11 +311,13 @@ class AssistantService:
                 tool_args = tool_call.arguments
 
                 # Track executed tool
-                executed_tools.append({
-                    "id": tool_call.id,
-                    "name": tool_name,
-                    "arguments": tool_args,
-                })
+                executed_tools.append(
+                    {
+                        "id": tool_call.id,
+                        "name": tool_name,
+                        "arguments": tool_args,
+                    }
+                )
 
                 # Execute tool
                 result = self.tool_registry.execute(
@@ -323,26 +340,30 @@ class AssistantService:
 
                 # Add tool result to messages for next LLM call
                 # First, add the assistant message with tool calls
-                messages.append({
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "id": tool_call.id,
-                            "type": "function",
-                            "function": {
-                                "name": tool_name,
-                                "arguments": str(tool_args),
-                            },
-                        }
-                    ],
-                })
-                
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": tool_call.id,
+                                "type": "function",
+                                "function": {
+                                    "name": tool_name,
+                                    "arguments": str(tool_args),
+                                },
+                            }
+                        ],
+                    }
+                )
+
                 # Then add the tool result
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": str(result.to_dict()),
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": str(result.to_dict()),
+                    }
+                )
 
         # If we hit max iterations, return last response
         return response, executed_tools, proposals
@@ -367,15 +388,19 @@ class AssistantService:
 
     def get_proposal(self, proposal_id: str) -> ActionProposal | None:
         """Get a proposal by ID, verifying ownership via conversation."""
-        return (
-            self.db.query(ActionProposal)
-            .join(Conversation)
-            .filter(
-                ActionProposal.id == proposal_id,
-                Conversation.user_id == self.user_id,
+        try:
+            prop_uuid = uuid.UUID(proposal_id)
+            return (
+                self.db.query(ActionProposal)
+                .join(Conversation)
+                .filter(
+                    ActionProposal.id == prop_uuid,
+                    Conversation.user_id == self.user_id,
+                )
+                .first()
             )
-            .first()
-        )
+        except (ValueError, TypeError):
+            return None
 
     def update_proposal(
         self,
@@ -419,32 +444,38 @@ class AssistantService:
 
         for proposal_id in proposal_ids:
             proposal = self.get_proposal(proposal_id)
-            
+
             if not proposal:
-                results.append({
-                    "proposal_id": proposal_id,
-                    "success": False,
-                    "entity_id": None,
-                    "error": "Proposal not found",
-                })
+                results.append(
+                    {
+                        "proposal_id": proposal_id,
+                        "success": False,
+                        "entity_id": None,
+                        "error": "Proposal not found",
+                    }
+                )
                 continue
 
             if proposal.status == "confirmed":
-                results.append({
-                    "proposal_id": proposal_id,
-                    "success": False,
-                    "entity_id": proposal.result_id,
-                    "error": "Proposal already applied",
-                })
+                results.append(
+                    {
+                        "proposal_id": proposal_id,
+                        "success": False,
+                        "entity_id": proposal.result_id,
+                        "error": "Proposal already applied",
+                    }
+                )
                 continue
 
             if proposal.status == "discarded":
-                results.append({
-                    "proposal_id": proposal_id,
-                    "success": False,
-                    "entity_id": None,
-                    "error": "Proposal was discarded",
-                })
+                results.append(
+                    {
+                        "proposal_id": proposal_id,
+                        "success": False,
+                        "entity_id": None,
+                        "error": "Proposal was discarded",
+                    }
+                )
                 continue
 
             # Apply revision if provided
@@ -458,14 +489,16 @@ class AssistantService:
             apply_tool_name = self.tool_registry.get_apply_tool_for_proposal(
                 proposal.proposal_type
             )
-            
+
             if not apply_tool_name:
-                results.append({
-                    "proposal_id": proposal_id,
-                    "success": False,
-                    "entity_id": None,
-                    "error": f"No apply tool for type: {proposal.proposal_type}",
-                })
+                results.append(
+                    {
+                        "proposal_id": proposal_id,
+                        "success": False,
+                        "entity_id": None,
+                        "error": f"No apply tool for type: {proposal.proposal_type}",
+                    }
+                )
                 continue
 
             # Execute apply tool
@@ -474,18 +507,20 @@ class AssistantService:
             )
 
             if result.is_error:
-                results.append({
-                    "proposal_id": proposal_id,
-                    "success": False,
-                    "entity_id": None,
-                    "error": result.error_message,
-                })
+                results.append(
+                    {
+                        "proposal_id": proposal_id,
+                        "success": False,
+                        "entity_id": None,
+                        "error": result.error_message,
+                    }
+                )
                 continue
 
             # Update proposal status
             proposal.status = "confirmed"
             proposal.applied_at = datetime.now(timezone.utc)
-            
+
             # Extract entity ID from result
             entity_id = None
             if result.data:
@@ -496,14 +531,14 @@ class AssistantService:
                 )
             proposal.result_id = entity_id
 
-            results.append({
-                "proposal_id": proposal_id,
-                "success": True,
-                "entity_id": entity_id,
-                "error": None,
-            })
+            results.append(
+                {
+                    "proposal_id": proposal_id,
+                    "success": True,
+                    "entity_id": entity_id,
+                    "error": None,
+                }
+            )
 
         self.db.commit()
         return results
-
-

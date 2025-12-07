@@ -175,7 +175,7 @@ class ProposeTransactionTool(BaseTool):
             )
 
         except Exception as e:
-            return ToolResult(is_error=True, error_message=str(e))
+            return ToolResult(success=False, error=str(e))
 
     def _parse_amount(self, text: str) -> float | None:
         """Parse amount from Indonesian-style text."""

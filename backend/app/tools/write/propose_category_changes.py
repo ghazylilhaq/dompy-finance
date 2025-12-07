@@ -110,8 +110,8 @@ class ProposeCategoryChangesTool(BaseTool):
 
             if not changes:
                 return ToolResult(
-                    is_error=True,
-                    error_message="No changes specified",
+                    success=False,
+                    error="No changes specified",
                 )
 
             # Get existing categories for validation
@@ -240,8 +240,8 @@ class ProposeCategoryChangesTool(BaseTool):
 
             if errors and not proposals:
                 return ToolResult(
-                    is_error=True,
-                    error_message="; ".join(errors),
+                    success=False,
+                    error="; ".join(errors),
                 )
 
             return ToolResult(
@@ -253,6 +253,6 @@ class ProposeCategoryChangesTool(BaseTool):
             )
 
         except Exception as e:
-            return ToolResult(is_error=True, error_message=str(e))
+            return ToolResult(success=False, error=str(e))
 
 

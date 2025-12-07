@@ -44,6 +44,7 @@ async def get_current_user(
         signing_key = jwks_client.get_signing_key_from_jwt(token)
 
         # Decode and verify the JWT
+        # Add 60 second leeway for clock skew between client and server
         payload = jwt.decode(
             token,
             signing_key.key,
@@ -52,6 +53,7 @@ async def get_current_user(
                 "verify_exp": True,
                 "verify_iat": True,
             },
+            leeway=60,  # 60 seconds tolerance for clock skew
         )
 
         # Extract user_id from the 'sub' claim
@@ -83,10 +85,3 @@ async def get_current_user(
             detail=f"Authentication failed: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-
-
-
-
-
-

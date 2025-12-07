@@ -105,12 +105,12 @@ class ApplyCategoryChangesTool(BaseTool):
                 return self._merge_category(arguments, db, user_id)
             else:
                 return ToolResult(
-                    is_error=True,
-                    error_message=f"Unknown action: {action}",
+                    success=False,
+                    error=f"Unknown action: {action}",
                 )
 
         except Exception as e:
-            return ToolResult(is_error=True, error_message=str(e))
+            return ToolResult(success=False, error=str(e))
 
     def _create_category(
         self, arguments: dict[str, Any], db: Session, user_id: str
@@ -142,8 +142,8 @@ class ApplyCategoryChangesTool(BaseTool):
 
         if not new_name:
             return ToolResult(
-                is_error=True,
-                error_message="New name is required for rename",
+                success=False,
+                error="New name is required for rename",
             )
 
         update_data = CategoryUpdate(name=new_name)
@@ -151,8 +151,8 @@ class ApplyCategoryChangesTool(BaseTool):
 
         if not category:
             return ToolResult(
-                is_error=True,
-                error_message="Category not found",
+                success=False,
+                error="Category not found",
             )
 
         return ToolResult(
@@ -174,8 +174,8 @@ class ApplyCategoryChangesTool(BaseTool):
 
         if not success:
             return ToolResult(
-                is_error=True,
-                error_message="Category not found or could not be deleted",
+                success=False,
+                error="Category not found or could not be deleted",
             )
 
         return ToolResult(

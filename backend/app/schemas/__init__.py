@@ -31,13 +31,12 @@ from app.schemas.assistant import (
     MessageResponse,
     ProposalResponse,
     ProposalUpdate,
-    ApplyProposalRequest,
-    ApplyProposalsResponse,
+    ApplyRequest,
+    ApplyResponse,
     ConversationSummary,
     ConversationDetail,
     ConversationListResponse,
     ToolCallInfo,
-    ToolResult,
 )
 
 __all__ = [
@@ -68,13 +67,12 @@ __all__ = [
     "MessageResponse",
     "ProposalResponse",
     "ProposalUpdate",
-    "ApplyProposalRequest",
-    "ApplyProposalsResponse",
+    "ApplyRequest",
+    "ApplyResponse",
     "ConversationSummary",
     "ConversationDetail",
     "ConversationListResponse",
     "ToolCallInfo",
-    "ToolResult",
 ]
 
 

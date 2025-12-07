@@ -100,8 +100,8 @@ class GetCashflowSummaryTool(BaseTool):
                 date_to_str = arguments.get("date_to")
                 if not date_from_str or not date_to_str:
                     return ToolResult(
-                        is_error=True,
-                        error_message="Custom period requires date_from and date_to",
+                        success=False,
+                        error="Custom period requires date_from and date_to",
                     )
                 date_from = datetime.strptime(date_from_str, "%Y-%m-%d").date()
                 date_to = datetime.strptime(date_to_str, "%Y-%m-%d").date()
@@ -167,6 +167,6 @@ class GetCashflowSummaryTool(BaseTool):
             )
 
         except Exception as e:
-            return ToolResult(is_error=True, error_message=str(e))
+            return ToolResult(success=False, error=str(e))
 
 

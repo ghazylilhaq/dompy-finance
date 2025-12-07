@@ -131,6 +131,11 @@ class ToolRegistry:
 tool_registry = ToolRegistry()
 
 
+def get_tool_registry() -> ToolRegistry:
+    """Get the global tool registry instance."""
+    return tool_registry
+
+
 def register_all_tools() -> None:
     """
     Register all available tools with the global registry.

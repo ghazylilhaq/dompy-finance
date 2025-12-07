@@ -134,7 +134,11 @@ export function useApi() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
 
   const apiRequest = useCallback(
-    async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
+    async <T>(
+      endpoint: string,
+      options: RequestInit = {},
+      retryCount = 0
+    ): Promise<T> => {
       const url = `${API_BASE_URL}${endpoint}`;
 
       const headers: Record<string, string> = {
@@ -155,6 +159,36 @@ export function useApi() {
           ...options.headers,
         },
       });
+
+      // Handle 401 errors with retry logic for token refresh
+      if (response.status === 401 && retryCount === 0 && isSignedIn) {
+        try {
+          // Wait a bit to allow Clerk to refresh the token
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Get a fresh token (Clerk will refresh if needed)
+          const freshToken = await getToken();
+          if (freshToken) {
+            // Retry the request once with the fresh token
+            const retryHeaders: Record<string, string> = {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${freshToken}`,
+              ...((options.headers as Record<string, string>) || {}),
+            };
+
+            const retryResponse = await fetch(url, {
+              ...options,
+              headers: retryHeaders,
+            });
+
+            return handleResponse<T>(retryResponse);
+          }
+        } catch (retryError) {
+          // If retry fails, fall through to handle the original error
+          console.warn("Token refresh retry failed:", retryError);
+        }
+      }
+
       return handleResponse<T>(response);
     },
     [getToken, isSignedIn]

@@ -103,6 +103,6 @@ class GetCategoriesTool(BaseTool):
             )
 
         except Exception as e:
-            return ToolResult(is_error=True, error_message=str(e))
+            return ToolResult(success=False, error=str(e))
 
 

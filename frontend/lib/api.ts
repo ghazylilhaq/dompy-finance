@@ -8,8 +8,7 @@
 
 import { Account, Budget, Category, Transaction } from "@/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Token getter function - will be set by the auth provider
 let getAuthToken: (() => Promise<string | null>) | null = null;
@@ -74,25 +73,27 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 /**
  * Make API request with proper headers and authentication
+ * Includes retry logic for 401 errors (token refresh)
  */
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryCount = 0
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   // Get auth token if available
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  
+
   if (getAuthToken) {
     const token = await getAuthToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
   }
-  
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -100,6 +101,36 @@ async function apiRequest<T>(
       ...options.headers,
     },
   });
+
+  // Handle 401 errors with retry logic for token refresh
+  if (response.status === 401 && retryCount === 0 && getAuthToken) {
+    try {
+      // Wait a bit to allow Clerk to refresh the token
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Get a fresh token (Clerk will refresh if needed)
+      const freshToken = await getAuthToken();
+      if (freshToken) {
+        // Retry the request once with the fresh token
+        const retryHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${freshToken}`,
+          ...((options.headers as Record<string, string>) || {}),
+        };
+
+        const retryResponse = await fetch(url, {
+          ...options,
+          headers: retryHeaders,
+        });
+
+        return handleResponse<T>(retryResponse);
+      }
+    } catch (retryError) {
+      // If retry fails, fall through to handle the original error
+      console.warn("Token refresh retry failed:", retryError);
+    }
+  }
+
   return handleResponse<T>(response);
 }
 
@@ -154,14 +185,14 @@ export async function updateAccount(
 
 export async function deleteAccount(id: string): Promise<void> {
   const headers: Record<string, string> = {};
-  
+
   if (getAuthToken) {
     const token = await getAuthToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
   }
-  
+
   await fetch(`${API_BASE_URL}/api/accounts/${id}`, {
     method: "DELETE",
     headers,
@@ -206,14 +237,14 @@ export async function updateCategory(
 
 export async function deleteCategory(id: string): Promise<void> {
   const headers: Record<string, string> = {};
-  
+
   if (getAuthToken) {
     const token = await getAuthToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
   }
-  
+
   await fetch(`${API_BASE_URL}/api/categories/${id}`, {
     method: "DELETE",
     headers,
@@ -299,14 +330,14 @@ export async function updateBudget(
 
 export async function deleteBudget(id: string): Promise<void> {
   const headers: Record<string, string> = {};
-  
+
   if (getAuthToken) {
     const token = await getAuthToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
   }
-  
+
   await fetch(`${API_BASE_URL}/api/budgets/${id}`, {
     method: "DELETE",
     headers,
@@ -375,14 +406,14 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: string): Promise<void> {
   const headers: Record<string, string> = {};
-  
+
   if (getAuthToken) {
     const token = await getAuthToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
   }
-  
+
   await fetch(`${API_BASE_URL}/api/transactions/${id}`, {
     method: "DELETE",
     headers,

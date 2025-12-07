@@ -17,13 +17,13 @@ from app.schemas.assistant import (
     MessageResponse,
     ProposalResponse,
     ProposalUpdate,
-    ApplyProposalRequest,
-    ApplyProposalsResponse,
-    ApplyProposalResult,
+    ApplyRequest,
+    ApplyResponse,
+    ApplyResultItem,
     ConversationSummary,
     ConversationDetail,
     ConversationListResponse,
-    ConversationMessageResponse,
+    MessageBase,
     ToolCallInfo,
 )
 
@@ -111,9 +111,9 @@ def send_message(
 # =============================================================================
 
 
-@router.post("/apply", response_model=ApplyProposalsResponse)
+@router.post("/apply", response_model=ApplyResponse)
 def apply_proposals(
-    request: ApplyProposalRequest,
+    request: ApplyRequest,
     service: AssistantService = Depends(get_assistant_service),
 ):
     """
@@ -133,9 +133,9 @@ def apply_proposals(
             revisions=revisions,
         )
 
-        return ApplyProposalsResponse(
+        return ApplyResponse(
             results=[
-                ApplyProposalResult(
+                ApplyResultItem(
                     proposal_id=UUID(r["proposal_id"]),
                     success=r["success"],
                     entity_id=r["entity_id"],
@@ -241,8 +241,7 @@ def list_conversations(
             for c in conversations
         ],
         total=total,
-        skip=skip,
-        limit=limit,
+        has_more=(skip + limit) < total,
     )
 
 
@@ -266,7 +265,7 @@ def get_conversation(
         created_at=conversation.created_at,
         updated_at=conversation.updated_at,
         messages=[
-            ConversationMessageResponse(
+            MessageBase(
                 id=m.id,
                 role=m.role,
                 content=m.content,

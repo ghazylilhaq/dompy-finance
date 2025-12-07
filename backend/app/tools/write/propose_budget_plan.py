@@ -97,8 +97,8 @@ class ProposeBudgetPlanTool(BaseTool):
 
             if available <= 0:
                 return ToolResult(
-                    is_error=True,
-                    error_message=(
+                    success=False,
+                    error=(
                         f"No remaining budget after savings ({target_savings:,.0f}) "
                         f"and mandatory payments ({mandatory_total:,.0f})"
                     ),
@@ -110,8 +110,8 @@ class ProposeBudgetPlanTool(BaseTool):
 
             if not expense_categories:
                 return ToolResult(
-                    is_error=True,
-                    error_message="No expense categories found. Create categories first.",
+                    success=False,
+                    error="No expense categories found. Create categories first.",
                 )
 
             # Get existing budgets for reference
@@ -174,6 +174,6 @@ class ProposeBudgetPlanTool(BaseTool):
             )
 
         except Exception as e:
-            return ToolResult(is_error=True, error_message=str(e))
+            return ToolResult(success=False, error=str(e))
 
 
