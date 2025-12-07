@@ -26,18 +26,6 @@ from app.schemas.transaction import (
     TransactionFilter,
 )
 from app.schemas.dashboard import DashboardStats
-from app.schemas.assistant import (
-    MessageRequest,
-    MessageResponse,
-    ProposalResponse,
-    ProposalUpdate,
-    ApplyRequest,
-    ApplyResponse,
-    ConversationSummary,
-    ConversationDetail,
-    ConversationListResponse,
-    ToolCallInfo,
-)
 
 __all__ = [
     # Account
@@ -62,22 +50,4 @@ __all__ = [
     "TransactionFilter",
     # Dashboard
     "DashboardStats",
-    # Assistant
-    "MessageRequest",
-    "MessageResponse",
-    "ProposalResponse",
-    "ProposalUpdate",
-    "ApplyRequest",
-    "ApplyResponse",
-    "ConversationSummary",
-    "ConversationDetail",
-    "ConversationListResponse",
-    "ToolCallInfo",
 ]
-
-
-
-
-
-
-

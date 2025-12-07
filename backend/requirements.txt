@@ -17,6 +17,3 @@ python-multipart>=0.0.9
 # PostgreSQL driver - needed for production
 psycopg2-binary==2.9.10
 
-# OpenAI for Dompy Assistant
-openai>=1.50.0
-
